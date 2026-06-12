@@ -126,7 +126,7 @@ void AMovingThing::TwistComponent(
     float VelocityDamping,
     float AngularThreshold
 ) {
-    float RelativeTwist = angle_norm(TwistTarget) - Constraint->GetCurrentTwist(); // FIXME: The angle is always unwinded anyway, so if the target is above 180 or below -180, it will forever spin
+    float RelativeTwist = angle_norm(TwistTarget) - Constraint->GetCurrentTwist();
 
 	if (FMath::Abs(RelativeTwist) > AngularThreshold) // If the twist is outside the threshold, apply velocity
     {
