@@ -22,6 +22,13 @@ void AMovingThing::Tick(float DeltaTime)
 
 }
 
+inline float angle_norm(float x) {
+    x = fmod(x + 180.f, 360.f);
+    if (x < 0)
+        x += 360.f;
+    return x - 180.f;
+}
+
 // Create new component and initializes properties usually for precise movement
 UStaticMeshComponent* AMovingThing::CreateMeshComponent(
     FName Name,
@@ -119,7 +126,7 @@ void AMovingThing::TwistComponent(
     float VelocityDamping,
     float AngularThreshold
 ) {
-    float RelativeTwist = TwistTarget - Constraint->GetCurrentTwist(); // FIXME: The angle is always unwinded anyway, so if the target is above 180 or below -180, it will forever spin
+    float RelativeTwist = angle_norm(TwistTarget) - Constraint->GetCurrentTwist(); // FIXME: The angle is always unwinded anyway, so if the target is above 180 or below -180, it will forever spin
 
 	if (FMath::Abs(RelativeTwist) > AngularThreshold) // If the twist is outside the threshold, apply velocity
     {
