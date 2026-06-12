@@ -117,7 +117,15 @@ UPhysicsConstraintComponent* AMovingThing::CreateConstraintComponent(
     return Constraint;
 }
 
-// Handles twisting movement of a component
+/// <summary>
+/// Handles Twisting motion of a component in a constraint
+/// </summary>
+/// <param name="Constraint">Unreal physics constraint</param>
+/// <param name="TwistTarget">Angle in degrees that component will twist to</param>
+/// <param name="TwistStrength">Strength of twisting motion</param>
+/// <param name="VelocityTarget">Target velocity when component is twisting to target</param>
+/// <param name="VelocityDamping">Strength of velocity damping or control</param>
+/// <param name="AngularThreshold">Margin of error when rotating before snapping</param>
 void AMovingThing::TwistComponent(
     UPhysicsConstraintComponent* Constraint,
     float TwistTarget,
@@ -126,7 +134,8 @@ void AMovingThing::TwistComponent(
     float VelocityDamping,
     float AngularThreshold
 ) {
-    float RelativeTwist = angle_norm(TwistTarget) - Constraint->GetCurrentTwist();
+    float RelativeTwist = angle_norm(TwistTarget) - Constraint->GetCurrentTwist(); // Twist target is locked to [-180deg, 180deg] range before processing
+                                                                                   // Leads to unintuitive motions, but may reflect actual telescope rotational limits better
 
 	if (FMath::Abs(RelativeTwist) > AngularThreshold) // If the twist is outside the threshold, apply velocity
     {
