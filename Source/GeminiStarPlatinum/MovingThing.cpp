@@ -134,8 +134,8 @@ void AMovingThing::TwistComponent(
     float VelocityDamping,
     float AngularThreshold
 ) {
-    float RelativeTwist = angle_norm(TwistTarget) - Constraint->GetCurrentTwist(); // Twist target is locked to [-180deg, 180deg] range before processing
-                                                                                   // Leads to unintuitive motions, but may reflect actual telescope rotational limits better
+    float RelativeTwist = FMath::UnwindDegrees(TwistTarget) - Constraint->GetCurrentTwist(); // Twist target is locked to [-180deg, 180deg] range before processing
+                                                                                             // Leads to nonoptimal motions, but may reflect actual telescope rotational limits better
 
 	if (FMath::Abs(RelativeTwist) > AngularThreshold) // If the twist is outside the threshold, apply velocity
     {
