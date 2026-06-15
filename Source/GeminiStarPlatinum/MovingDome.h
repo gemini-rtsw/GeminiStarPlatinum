@@ -94,6 +94,12 @@ public:
     // Threshold to activate vents position target spring
     UPROPERTY(BlueprintReadWrite)
     float VentLinearThreshold;
+    // Following two describe the offset of the two vent doors during rest
+    UPROPERTY(BlueprintReadWrite)
+    float TopVRestOffset = 0.f;
+    UPROPERTY(BlueprintReadWrite)
+    float BotVRestOffset = 0.f;
+
 
 protected:
     // Called when the game starts or when spawned
@@ -143,6 +149,10 @@ protected:
     UPROPERTY(VisibleAnywhere)
     UPhysicsConstraintComponent* FluxCapacitorConstraint;
 
-    // Determine constraint linear drive each frame
+    // Determine constraint linear drive on a single component/constraint each frame
+    void SlideComponent(UPhysicsConstraintComponent* Constraint, UPrimitiveComponent* Child,
+        float RestOffset, float SlideTarget);
+
+    // Determine constraint linear drive of multiple components each frame
     void SlideComponents();
 };

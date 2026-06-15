@@ -105,6 +105,7 @@ UPhysicsConstraintComponent* AMovingThing::CreateConstraintComponent(
     Constraint->SetLinearXLimit(bCanSlide ? LCM_Limited : LCM_Locked, 500.f); // X axis
     Constraint->SetLinearDriveAccelerationMode(bAccelerationMode);
     Constraint->SetLinearVelocityDrive(bCanSlide, false, false);
+    Constraint->SetLinearPositionDrive(bCanSlide, false, false);
 
 	Constraint->SetDisableCollision(true); // Prevents collision between parent and child components
 	Constraint->SetProjectionEnabled(true); // Enables projection to prevent constraint violations
@@ -178,6 +179,22 @@ void AMovingThing::SwingComponent(
 	Constraint->SetAngularDriveAccelerationMode(bAccelerationMode); // Set each tick in case the mode is changed
 }
 
+/// <summary>
+/// In a linear constraint, measures the slide (linear motion) of a child against parent
+/// </summary>
+/// <param name="Constraint">The linear constraint in question.</param>
+/// <param name="Child">The attached object.</param>
+/// <param name="Parent">The main object.</param>
+/// <param name="RestOffset">The linear offset in world-space units of child from parent during rest.</param>
+/// <returns>The current linear slide, in world-space units, of the child against the parent.</returns>
+float AMovingThing::MeasureSlide(UPhysicsConstraintComponent* Constraint, UPrimitiveComponent* Child,
+    USceneComponent* Parent, float RestOffset)
+{
+    const FVector AxisW = Constraint->GetComponentTransform().GetUnitAxis(EAxis::X);
+    const FVector DispW = Child->GetComponentLocation() - Parent->GetComponentLocation();
+    return FVector::DotProduct(DispW, AxisW) - RestOffset; // Slide along the drive
+}
+
 // FIXME: Doesn't calculate anything useful :/ Math idea seems correct though
 void AMovingThing::CalculateCOMOffset(UPhysicsConstraintComponent* Constraint, UStaticMeshComponent* Component1, UStaticMeshComponent* Component2)
 {
@@ -191,7 +208,7 @@ void AMovingThing::CalculateCOMOffset(UPhysicsConstraintComponent* Constraint, U
     FVector2D FlatPoint(RelativeCOM.X, RelativeCOM.Z);
 
     // Avoid division by zero. Uses KINDA_SMALL_NUMBER
-    if (FlatPoint.IsNearlyZero())
+    if (!FlatPoint.IsNearlyZero())
     {
         // Convert magnitude of vector to 1
         FlatPoint.Normalize();

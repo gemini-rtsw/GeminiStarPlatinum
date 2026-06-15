@@ -77,4 +77,7 @@ protected:
 
     // Calculate center of mass offset needed to balance the telescope at a certain angle
     void CalculateCOMOffset(UPhysicsConstraintComponent* Constraint, UStaticMeshComponent* Component1, UStaticMeshComponent* Component2);
+
+    float MeasureSlide(UPhysicsConstraintComponent* Constraint, UPrimitiveComponent* Child,
+        USceneComponent* Parent, float RestOffset);
 };

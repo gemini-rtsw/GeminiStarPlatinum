@@ -197,6 +197,8 @@ AMovingDome::AMovingDome()
 void AMovingDome::BeginPlay()
 {
     Super::BeginPlay();
+    TopVRestOffset = MeasureSlide(TopVConstraint, TopV, Dome, 0.f);
+    BotVRestOffset = MeasureSlide(BotVConstraint, BotV, Dome, 0.f);
 }
 
 // Called every frame
@@ -225,6 +227,23 @@ void AMovingDome::Tick(float DeltaTime)
     SlideComponents();
 }
 
+void AMovingDome::SlideComponent(UPhysicsConstraintComponent* Constraint, UPrimitiveComponent* Child,
+    float RestOffset, float SlideTarget)
+{
+    const float RelativeSlide = SlideTarget - MeasureSlide(Constraint, Child, Dome, RestOffset);
+    if (FMath::Abs(RelativeSlide) > VentLinearThreshold)
+    {
+        Constraint->SetLinearVelocityTarget(FVector(FMath::Sign(RelativeSlide) * VentVelocityTarget, 0.f, 0.f));
+        Constraint->SetLinearDriveParams(0.f, VentVelocityDamping, 0.f);
+    }
+    else
+    {
+        Constraint->SetLinearPositionTarget(FVector(SlideTarget, 0.f, 0.f));
+        Constraint->SetLinearVelocityTarget(FVector::ZeroVector);
+        Constraint->SetLinearDriveParams(VentSlideStrength, VentVelocityDamping, 0.f);
+    }
+}
+
 void AMovingDome::SlideComponents() {
     /*for (UPhysicsConstraintComponent* Constraint : {TopVConstraint, BotVConstraint})
     {
@@ -248,10 +267,7 @@ void AMovingDome::SlideComponents() {
             Constraint->SetLinearVelocityTarget(FVector::ZeroVector);
             Constraint->SetLinearDriveParams(VentSlideStrength, VentVelocityDamping, 0.f);
         }
-    }*/
-
-    // TODO: All hardcoded currenty, so it's not very flexible for changes, especially since the dome model is not pointing in the right direction :(
-    //       Eventually, change the value from component's Z to something relative to the constraints
+    }
     float RelativeSlide = VentSlideTarget - TopV->GetComponentLocation().Z + Dome->GetComponentLocation().Z;
     if (FMath::Abs(RelativeSlide) > VentLinearThreshold)
     {
@@ -277,4 +293,7 @@ void AMovingDome::SlideComponents() {
         BotVConstraint->SetLinearVelocityTarget(FVector::ZeroVector);
         BotVConstraint->SetLinearDriveParams(VentSlideStrength, VentVelocityDamping, 0.f);
     }
+    */
+    SlideComponent(TopVConstraint, TopV, TopVRestOffset, VentSlideTarget);
+    SlideComponent(BotVConstraint, BotV, BotVRestOffset, -VentSlideTarget);
 }
