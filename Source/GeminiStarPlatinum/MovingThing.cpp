@@ -211,7 +211,7 @@ void AMovingThing::CalculateCOMOffset(UPhysicsConstraintComponent* Constraint, U
     if (!FlatPoint.IsNearlyZero())
     {
         // Convert magnitude of vector to 1
-        FlatPoint.Normalize();
+        // FlatPoint.Normalize();
 
         // The forward X direction in the XZ plane
         FVector2D ForwardVector(1.f, 0.f);
