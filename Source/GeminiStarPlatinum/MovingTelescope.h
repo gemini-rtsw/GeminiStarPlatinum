@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "MovingThing.h"
+#include "TelescopeModel.h"
 #include "Components/BillboardComponent.h"
 #include "MovingTelescope.generated.h"
 
@@ -9,11 +10,13 @@ UCLASS()
 class GEMINISTARPLATINUM_API AMovingTelescope : public AMovingThing
 {
 	GENERATED_BODY()
-	
 public:
 	AMovingTelescope();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+    UPROPERTY(BlueprintReadOnly)
+    UTelescopeModel* Model;
 
     // When button is pressed, the laser will be turned on
     UPROPERTY(BlueprintReadWrite)

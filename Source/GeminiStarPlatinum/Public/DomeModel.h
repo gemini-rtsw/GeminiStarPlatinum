@@ -20,6 +20,7 @@ public:
 	UPROPERTY(BlueprintReadOnly) float VentSlideTarget =  0.f;
 	UPROPERTY(BlueprintReadOnly) bool  bOpen           =  false;
 
+	// Rotational imits, temporary until a data asset is created representing real life physical limitations
 	UPROPERTY(EditAnywhere)      float TwistMin        = -180.f, 
 		                               TwistMax        =  180.f;
 

@@ -159,6 +159,8 @@ void AMovingTelescope::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
     DisplayCenterOfMass();
 
+    if (!Model) Model = GetGameInstance()->GetSubsystem<UTelescopeModel>();
+
     FVector LinForce;
     FVector AngForce;
     ElevConstraint->GetConstraintForce(LinForce, AngForce);
@@ -198,7 +200,7 @@ void AMovingTelescope::Tick(float DeltaTime)
     DrawDebugString(GetWorld(), CassConstraint->GetComponentLocation() + FVector(0.f, 0.f, -400.f), ElevAngForce.ToString(), nullptr, FColor::Red, 0.f, true, 1.4f);
 
     // Update motion of components
-    TwistComponent(AzimConstraint, AzimTwistTarget, AzimTwistStrength, AzimVelocityTarget, AzimVelocityDamping, AzimAngularThreshold);
+    TwistComponent(AzimConstraint, Model->AzimTarget, AzimTwistStrength, AzimVelocityTarget, AzimVelocityDamping, AzimAngularThreshold);
     SwingComponent(ElevConstraint, ElevSwingTarget, ElevSwingStrength, ElevVelocityTarget, ElevVelocityDamping, ElevAngularThreshold, ElevAngularOffset);
     TwistComponent(CassConstraint, CassTwistTarget, CassTwistStrength, CassVelocityTarget, CassVelocityDamping, CassAngularThreshold);
 }

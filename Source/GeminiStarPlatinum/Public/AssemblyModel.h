@@ -7,7 +7,7 @@
 #include "AssemblyModel.generated.h"
 
 /**
- * 
+ * The standard structure of a data "model" (MVC pattern) for reading by MovingXXXX actors, storing by UI controller/EPICS data feed
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStateChanged);
 
