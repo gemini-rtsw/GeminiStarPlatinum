@@ -201,8 +201,8 @@ void AMovingTelescope::Tick(float DeltaTime)
 
     // Update motion of components
     TwistComponent(AzimConstraint, Model->AzimTarget, AzimTwistStrength, AzimVelocityTarget, AzimVelocityDamping, AzimAngularThreshold);
-    SwingComponent(ElevConstraint, ElevSwingTarget, ElevSwingStrength, ElevVelocityTarget, ElevVelocityDamping, ElevAngularThreshold, ElevAngularOffset);
-    TwistComponent(CassConstraint, CassTwistTarget, CassTwistStrength, CassVelocityTarget, CassVelocityDamping, CassAngularThreshold);
+    SwingComponent(ElevConstraint, Model->ElevTarget, ElevSwingStrength, ElevVelocityTarget, ElevVelocityDamping, ElevAngularThreshold, ElevAngularOffset);
+    TwistComponent(CassConstraint, Model->CassTarget, CassTwistStrength, CassVelocityTarget, CassVelocityDamping, CassAngularThreshold);
 }
 
 // TODO: Clean this up, numbers were chosen out of a hat
