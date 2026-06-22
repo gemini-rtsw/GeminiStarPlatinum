@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "MovingThing.h"
+#include "DomeModel.h"
 #include "MovingDome.generated.h"
 
 UCLASS()
@@ -14,6 +15,9 @@ public:
     AMovingDome();
     // Called every frame
     virtual void Tick(float DeltaTime) override;
+
+    UPROPERTY(BlueprintReadOnly)
+    UDomeModel* Model;
 
     // Opens shutters and vents
     UPROPERTY(BlueprintReadWrite)

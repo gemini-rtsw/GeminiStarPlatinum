@@ -206,6 +206,8 @@ void AMovingDome::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
+    if (!Model) Model = GetGameInstance()->GetSubsystem<UDomeModel>();
+
 	// Update targets based on whether the dome is open or closed
     if (bOpen)
     {
@@ -221,7 +223,7 @@ void AMovingDome::Tick(float DeltaTime)
     }
 
 	// Update motion of components
-    TwistComponent(DomeConstraint, DomeTwistTarget, DomeTwistStrength, DomeVelocityTarget, DomeVelocityDamping, DomeAngularThreshold);
+    TwistComponent(DomeConstraint, Model->DomeTwistTarget, DomeTwistStrength, DomeVelocityTarget, DomeVelocityDamping, DomeAngularThreshold);
     SwingComponent(TopSConstraint, TopSSwingTarget, TopSSwingStrength, TopSVelocityTarget, TopSVelocityDamping, TopSAngularThreshold, TopSAngularOffset);
     SwingComponent(BotSConstraint, BotSSwingTarget, BotSSwingStrength, BotSVelocityTarget, BotSVelocityDamping, BotSAngularThreshold, BotSAngularOffset);
     SlideComponents();

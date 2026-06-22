@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GeminiStarPlatinum is an Unreal Engine 5.6 real-time **physics simulation of the Gemini telescope and its observatory dome**. Movements are driven by physics constraints (not animation), and the longer-term intent is to mirror a live TCS (Telescope Control System) EPICS data feed. Single C++ Runtime module: `GeminiStarPlatinum`.
 
+## Project Goals
+
+These are the guiding objectives for the project. Weigh new work against them.
+
+- **Immersive operator experience** — Recreate a simplified version of what telescope operators do in the command center. Users should be able to observe and interact with the live behavior of the telescope and dome, with access to the important positional data points (e.g. azimuth/elevation/Cassegrain angles, dome twist/shutter/vent state) as they move.
+- **Streamlined, dual-audience data visualization** — Build a data interface that serves both laymen and engineers/operators. Support both at-a-glance world-space/camera-space figures (labels and readouts attached to the moving geometry) and detailed drill-down menus for precise numeric state. Keep the default view approachable while making the deeper data available on demand.
+- **Maintainability and extensibility** — Contribute so future work doesn't require extensive re-learning. Favor clear MVC boundaries (models as source of truth, actors as views, coordinator/feed as the control source), document non-obvious physics and wiring decisions inline, and design new UI/data features so additional data points or panels can be added without rework.
+
 ## Build & Run
 
 Workflow is **Editor + Live Coding** with a default Epic Games Launcher engine install (`C:\Program Files\Epic Games\UE_5.6`).
