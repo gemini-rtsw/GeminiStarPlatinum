@@ -3,12 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "LiveDataFeed.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "ObservatoryCoordinator.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnControlModeChanged);
-
 UENUM(BlueprintType) enum class EControlMode : uint8 { Manual, Live };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnControlModeChanged, EControlMode, Mode);
 
 /**
  * Contains general movement rules coordinated between dome, telescope; Manages data access to TCS Epics API
@@ -23,4 +24,7 @@ public:
 	UPROPERTY(BlueprintAssignable) FOnControlModeChanged OnControlModeChanged;
 
 	UFUNCTION(BlueprintCallable) void SetControlMode(EControlMode NewMode);
+
+private:
+	UPROPERTY() ULiveDataFeed* Feed = nullptr;
 };

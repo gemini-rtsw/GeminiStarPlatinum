@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemini Star Platinum — Telescope & Dome Physics Simulation</title>
+<style>
+  :root {
+    --void: #05060f;
+    --void-2: #0a0d1f;
+    --nebula-1: #6d5dfc;
+    --nebula-2: #c14bd6;
+    --nebula-3: #2bd6c9;
+    --star: #f5f7ff;
+    --muted: #9aa3c4;
+    --glass: rgba(255, 255, 255, 0.04);
+    --glass-border: rgba(255, 255, 255, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(ellipse at 20% -10%, #14193b 0%, var(--void-2) 40%, var(--void) 100%);
+    color: var(--star);
+    line-height: 1.65;
+    overflow-x: hidden;
+  }
+
+  /* ---------- Starfield ---------- */
+  .starfield, .starfield::before, .starfield::after {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-repeat: repeat;
+    content: "";
+  }
+  .starfield {
+    background:
+      radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+      radial-gradient(1px 1px at 130px 80px, #cfd6ff, transparent),
+      radial-gradient(2px 2px at 250px 160px, #fff, transparent),
+      radial-gradient(1px 1px at 340px 50px, #b9c6ff, transparent),
+      radial-gradient(1px 1px at 410px 220px, #fff, transparent);
+    background-size: 480px 320px;
+    animation: drift 140s linear infinite;
+    opacity: 0.8;
+  }
+  .starfield::before {
+    background:
+      radial-gradient(1px 1px at 80px 120px, #fff, transparent),
+      radial-gradient(2px 2px at 200px 40px, #d7b3ff, transparent),
+      radial-gradient(1px 1px at 300px 200px, #fff, transparent);
+    background-size: 360px 260px;
+    animation: drift 90s linear infinite reverse;
+    opacity: 0.5;
+  }
+
+  @keyframes drift {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-320px); }
+  }
+
+  .shooting-star {
+    position: fixed;
+    top: 12%; left: -10%;
+    width: 140px; height: 1px;
+    background: linear-gradient(90deg, transparent, #fff);
+    z-index: -1;
+    filter: drop-shadow(0 0 6px #fff);
+    animation: shoot 9s ease-in infinite;
+    opacity: 0;
+  }
+  .shooting-star.two { top: 38%; animation-delay: 4.5s; animation-duration: 11s; }
+  @keyframes shoot {
+    0% { transform: translate(0,0) rotate(12deg); opacity: 0; }
+    8% { opacity: 1; }
+    22% { transform: translate(120vw, 40vh) rotate(12deg); opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  /* ---------- Layout ---------- */
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Hero ---------- */
+  header.hero {
+    position: relative;
+    min-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 80px 24px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    background: var(--glass);
+    backdrop-filter: blur(8px);
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+  .badge .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--nebula-3);
+    box-shadow: 0 0 10px var(--nebula-3);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  .hero h1 {
+    font-size: clamp(2.6rem, 7vw, 5.2rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    background: linear-gradient(120deg, #fff 10%, var(--nebula-1) 50%, var(--nebula-2) 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 22px;
+  }
+  .hero p.lede {
+    max-width: 680px;
+    font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+    color: var(--muted);
+    margin-bottom: 40px;
+  }
+
+  .cta-row { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    padding: 13px 28px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform .2s ease, box-shadow .2s ease;
+    display: inline-block;
+  }
+  .btn.primary {
+    background: linear-gradient(120deg, var(--nebula-1), var(--nebula-2));
+    color: #fff;
+    box-shadow: 0 8px 30px rgba(109,93,252,0.45);
+  }
+  .btn.ghost {
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    color: var(--star);
+  }
+  .btn:hover { transform: translateY(-3px); }
+
+  /* Orbit simulator */
+  .orbit-sim {
+    position: relative;
+    width: min(440px, 86vw);
+    margin: 48px auto 0;
+  }
+  .orbit-sim canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 18px;
+    border: 1px solid var(--glass-border);
+    background: radial-gradient(ellipse at 50% 45%, rgba(43,76,140,0.18), rgba(6,8,20,0.0) 70%);
+    cursor: crosshair;
+    touch-action: none;
+  }
+  .orbit-hint {
+    margin-top: 12px;
+    font-size: 0.78rem;
+    color: #6c7497;
+    letter-spacing: 0.04em;
+  }
+  .orbit-hint kbd {
+    font-family: inherit;
+    color: var(--nebula-3);
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    padding: 1px 7px;
+  }
+
+  /* ---------- Sections ---------- */
+  section { padding: 90px 0; position: relative; }
+  .eyebrow {
+    color: var(--nebula-3);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    margin-bottom: 14px;
+  }
+  h2.section-title {
+    font-size: clamp(1.9rem, 4vw, 2.8rem);
+    font-weight: 700;
+    margin-bottom: 18px;
+    letter-spacing: -0.01em;
+  }
+  .section-intro { max-width: 640px; color: var(--muted); margin-bottom: 48px; }
+
+  /* Cards */
+  .grid { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .card {
+    position: relative;
+    padding: 30px 28px;
+    border-radius: 18px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+    transition: transform .25s ease, border-color .25s ease;
+  }
+  .card::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 100% 0%, rgba(109,93,252,0.18), transparent 60%);
+    pointer-events: none;
+  }
+  .card:hover { transform: translateY(-6px); border-color: rgba(193,75,214,0.5); }
+  .card .icon { font-size: 1.9rem; margin-bottom: 16px; display: block; }
+  .card h3 { font-size: 1.2rem; margin-bottom: 10px; }
+  .card p { color: var(--muted); font-size: 0.96rem; }
+
+  /* Architecture pillars */
+  .pillars { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); }
+  .pillar {
+    padding: 28px;
+    border-radius: 18px;
+    border: 1px solid var(--glass-border);
+    background: linear-gradient(160deg, rgba(109,93,252,0.10), rgba(43,214,201,0.04));
+  }
+  .pillar .tag {
+    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--nebula-2); margin-bottom: 12px;
+  }
+  .pillar h3 { margin-bottom: 12px; font-size: 1.15rem; }
+  .pillar ul { list-style: none; }
+  .pillar li { color: var(--muted); font-size: 0.92rem; padding: 5px 0 5px 20px; position: relative; }
+  .pillar li::before {
+    content: "✦"; position: absolute; left: 0; color: var(--nebula-3); font-size: 0.7rem; top: 8px;
+  }
+
+  /* Status / stubs */
+  .status-list { display: grid; gap: 14px; }
+  .status-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 18px 22px; border-radius: 14px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+  }
+  .chip {
+    flex-shrink: 0;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+    padding: 5px 11px; border-radius: 999px; text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .chip.done { background: rgba(43,214,201,0.18); color: var(--nebula-3); border: 1px solid rgba(43,214,201,0.4); }
+  .chip.wip  { background: rgba(245,200,70,0.16); color: #f5c846; border: 1px solid rgba(245,200,70,0.4); }
+  .chip.stub { background: rgba(193,75,214,0.16); color: #e08bf0; border: 1px solid rgba(193,75,214,0.4); }
+  .status-item span.text { color: var(--star); font-size: 0.96rem; }
+  .status-item span.text small { color: var(--muted); display: block; }
+
+  /* Tech strip */
+  .tech-strip { display: flex; flex-wrap: wrap; gap: 12px; }
+  .tech {
+    padding: 9px 18px; border-radius: 999px;
+    border: 1px solid var(--glass-border); background: var(--glass);
+    font-size: 0.88rem; color: var(--muted);
+  }
+  .tech strong { color: var(--star); }
+
+  /* Divider glow */
+  .divider {
+    height: 1px; border: none;
+    background: linear-gradient(90deg, transparent, var(--nebula-1), var(--nebula-2), transparent);
+    opacity: 0.5; margin: 0 auto; max-width: 1100px;
+  }
+
+  footer {
+    text-align: center; padding: 60px 24px 80px;
+    color: var(--muted); font-size: 0.85rem;
+  }
+  footer .planet-em { font-size: 1.4rem; }
+  footer a { color: var(--nebula-3); text-decoration: none; }
+
+  .note {
+    margin-top: 18px; font-size: 0.8rem; color: #6c7497;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+  <div class="starfield"></div>
+  <div class="shooting-star"></div>
+  <div class="shooting-star two"></div>
+
+  <header class="hero">
+    <div class="badge"><span class="dot"></span> Unreal Engine 5.6 · Real-time Physics</div>
+    <h1>Gemini Star Platinum</h1>
+    <p class="lede">
+      A real-time <strong>physics simulation of the Gemini telescope and its observatory dome</strong> —
+      driven by genuine physics constraints, not animation curves, and aimed at one day mirroring a
+      live telescope control system data feed.
+    </p>
+    <div class="cta-row">
+      <a class="btn primary" href="#architecture">Explore the Architecture</a>
+      <a class="btn ghost" href="#status">Build Status</a>
+    </div>
+
+    <div class="orbit-sim">
+      <canvas id="orbit" width="880" height="560" aria-label="Interactive three-body problem simulation"></canvas>
+      <p class="orbit-hint">
+        Real-time three-body problem · seeded with the figure-eight choreography ·
+        <kbd>drag</kbd> any body to slingshot it into chaos ·
+        <kbd>R</kbd> reset · <kbd>space</kbd> randomize
+      </p>
+    </div>
+  </header>
+
+  <hr class="divider">
+
+  <!-- WHAT IT IS -->
+  <section id="what" class="wrap">
+    <p class="eyebrow">What this is</p>
+    <h2 class="section-title">A telescope you can feel the physics of</h2>
+    <p class="section-intro">
+      Every movement in the simulation is the result of <strong>physics constraints</strong> — drive
+      springs, velocity drives, and locked anchor bodies — rather than baked animation. The longer-term
+      intent is to feed it real data from a TCS (Telescope Control System) EPICS interface so the
+      virtual observatory tracks the real one.
+    </p>
+
+    <div class="grid">
+      <div class="card">
+        <span class="icon">🛰️</span>
+        <h3>Constraint-driven motion</h3>
+        <p>Azimuth, elevation, and Cassegrain rotation are produced by <code>UPhysicsConstraintComponent</code> drives chasing target angles each tick.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🌌</span>
+        <h3>The observatory dome</h3>
+        <p>A second physics actor twists the dome, opens its shutter, and works its vents — sharing the same velocity-then-snap drive pattern as the mount.</p>
+      </div>
+      <div class="card">
+        <span class="icon">📡</span>
+        <h3>Live-feed ready</h3>
+        <p>A coordinator and data feed are scaffolded to switch between Manual and Live control and broker a real EPICS telescope feed.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section id="architecture" class="wrap">
+    <p class="eyebrow">Under the hood</p>
+    <h2 class="section-title">An MVC split, mid-migration</h2>
+    <p class="section-intro">
+      The codebase is refactoring toward a clean Model–View–Coordinator separation. Models are the
+      source of truth; physics actors are the views that chase them.
+    </p>
+
+    <div class="pillars">
+      <div class="pillar">
+        <span class="tag">Models · source of truth</span>
+        <h3>State subsystems</h3>
+        <ul>
+          <li>UAssemblyModel (abstract)</li>
+          <li>UTelescopeModel — azim / elev / cass targets</li>
+          <li>UDomeModel — twist, shutter, vents</li>
+          <li>Clamp to per-axis limits &amp; broadcast change</li>
+        </ul>
+      </div>
+      <div class="pillar">
+        <span class="tag">Views · physics actors</span>
+        <h3>Moving things</h3>
+        <ul>
+          <li>AMovingThing (base)</li>
+          <li>AMovingTelescope — wired to its model</li>
+          <li>AMovingDome — drives from local fields</li>
+          <li>Build constraint hierarchy in constructor</li>
+        </ul>
+      </div>
+      <div class="pillar">
+        <span class="tag">Coordinator · control source</span>
+        <h3>Observatory brain</h3>
+        <ul>
+          <li>UObservatoryCoordinator</li>
+          <li>EControlMode { Manual, Live }</li>
+          <li>ULiveDataFeed — pulls live TCS data</li>
+          <li>Brokers the EPICS API</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHYSICS GOTCHAS -->
+  <section id="physics" class="wrap">
+    <p class="eyebrow">Deliberate &amp; fragile</p>
+    <h2 class="section-title">Physics conventions worth respecting</h2>
+    <div class="grid">
+      <div class="card">
+        <span class="icon">⚡</span>
+        <h3>The FluxCapacitor</h3>
+        <p>A zero-mass helper body spun forever by a velocity drive — its only job is to stop UE's sleep system from halting slow, precise rotations. Do not remove it.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🎯</span>
+        <h3>Velocity-then-snap</h3>
+        <p>Drives push with a velocity drive past a threshold, then snap to an orientation spring within it. Angles are unwound to [-180°, 180°] to mimic real mount limits.</p>
+      </div>
+      <div class="card">
+        <span class="icon">⚖️</span>
+        <h3>Tuned masses</h3>
+        <p>Anchors weigh ~1e29 to act as immovable references; center-of-mass offsets come straight from SolidWorks mass-property data, mm converted to cm.</p>
+      </div>
+    </div>
+    <p class="note">⚠ Known bug: setting elevation mass too high fails to stabilize. Masses are load-bearing tuned values — treat them with care.</p>
+  </section>
+
+  <!-- STATUS -->
+  <section id="status" class="wrap">
+    <p class="eyebrow">Honesty corner</p>
+    <h2 class="section-title">What works, what's still a stub</h2>
+    <div class="status-list">
+      <div class="status-item">
+        <span class="chip done">Wired</span>
+        <span class="text">Telescope actor reads targets from <code>UTelescopeModel</code>
+          <small>The mount is fully on the MVC path.</small></span>
+      </div>
+      <div class="status-item">
+        <span class="chip wip">In progress</span>
+        <span class="text">Dome actor not yet wired to <code>UDomeModel</code>
+          <small>Open/closed targets are duplicated between model and actor — keep them in sync.</small></span>
+      </div>
+      <div class="status-item">
+        <span class="chip stub">Stub</span>
+        <span class="text">Observatory coordinator &amp; live data feed
+          <small><code>SetControlMode</code> is a no-op; <code>ULiveDataFeed</code> is an empty placeholder.</small></span>
+      </div>
+      <div class="status-item">
+        <span class="chip stub">Stub</span>
+        <span class="text">COM auto-calc &amp; clamp helpers
+          <small><code>CalculateCOMOffset</code> is FIXME; <code>ClampAndStore</code> is declared but unimplemented.</small></span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- TECH -->
+  <section id="tech" class="wrap">
+    <p class="eyebrow">Stack</p>
+    <h2 class="section-title">Built with</h2>
+    <div class="tech-strip">
+      <div class="tech"><strong>Unreal Engine</strong> 5.6</div>
+      <div class="tech"><strong>C++</strong> Runtime module</div>
+      <div class="tech"><strong>Chaos</strong> Physics &amp; substepping</div>
+      <div class="tech"><strong>EnhancedInput</strong></div>
+      <div class="tech"><strong>Editor</strong> + Live Coding</div>
+      <div class="tech"><strong>EPICS / TCS</strong> <em>(planned)</em></div>
+    </div>
+  </section>
+
+  <footer>
+    <p class="planet-em">🪐</p>
+    <p>Gemini Star Platinum — a virtual observatory in motion.</p>
+    <p class="note">This page is an interpretive overview generated from the project's documentation. Not affiliated with the real Gemini Observatory.</p>
+  </footer>
+
+  <script>
+  /* ------------------------------------------------------------------
+     Real-time three-body problem.
+
+     Three equal-mass bodies attract each other under Newtonian gravity,
+        a_i = sum_{j != i} G * m_j * (r_j - r_i) / |r_j - r_i|^3
+     integrated with the symplectic velocity-Verlet (leapfrog) scheme,
+     which conserves energy well over long runs and is the standard
+     choice for gravitational N-body work.
+
+     The system is seeded with the Chenciner-Montgomery "figure-eight"
+     choreography -- an exact periodic solution of the three-body
+     problem (G = m = 1). Everything runs in dimensionless simulation
+     units and is mapped to pixels only for rendering, in the
+     center-of-mass frame (total momentum is a conserved quantity, so
+     the COM moves in a straight line; subtracting it keeps the action
+     framed). Drag any body to perturb the orbit into chaos.
+  ------------------------------------------------------------------ */
+  (function () {
+    const canvas = document.getElementById('orbit');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    const G = 1;                 // dimensionless gravitational constant
+    const SOFTENING2 = 1e-4;     // tiny softening to survive close passages
+    const DT = 1 / 800;          // fixed sim timestep (small for accuracy)
+    const TIME_SCALE = 1.7;      // sim-seconds advanced per real second
+    const VIEW_SCALE = 168;      // pixels per sim length unit
+    const TRAIL = 260;           // trail samples retained per body
+
+    const HUES = [168, 268, 312];
+
+    // Each body: {x,y,vx,vy,m,ax,ay,trail:[]}
+    let bodies = [];
+
+    function makeBody(x, y, vx, vy, m, i) {
+      return { x, y, vx, vy, m, ax: 0, ay: 0, hue: HUES[i % 3], trail: [] };
+    }
+
+    // The figure-eight choreography (G = m = 1).
+    function seedFigureEight() {
+      const p = 0.97000436, q = 0.24308753;
+      const vx = 0.93240737, vy = 0.86473146;
+      bodies = [
+        makeBody(-p,  q,  vx / 2,  vy / 2, 1, 0),
+        makeBody( p, -q,  vx / 2,  vy / 2, 1, 1),
+        makeBody( 0,  0, -vx,     -vy,     1, 2),
+      ];
+      computeAccel();
+    }
+
+    // A random-but-bound configuration for variety.
+    function seedRandom() {
+      bodies = [];
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2 + Math.random() * 0.4;
+        const r = 0.7 + Math.random() * 0.5;
+        bodies.push(makeBody(
+          Math.cos(a) * r, Math.sin(a) * r,
+          -Math.sin(a) * 0.5 + (Math.random() - 0.5) * 0.3,
+           Math.cos(a) * 0.5 + (Math.random() - 0.5) * 0.3,
+          0.8 + Math.random() * 0.5, i));
+      }
+      zeroMomentum();
+      computeAccel();
+    }
+
+    // Remove net momentum so the COM stays put.
+    function zeroMomentum() {
+      let px = 0, py = 0, M = 0;
+      for (const b of bodies) { px += b.m * b.vx; py += b.m * b.vy; M += b.m; }
+      for (const b of bodies) { b.vx -= px / M; b.vy -= py / M; }
+    }
+
+    function computeAccel() {
+      for (const b of bodies) { b.ax = 0; b.ay = 0; }
+      for (let i = 0; i < bodies.length; i++) {
+        for (let j = i + 1; j < bodies.length; j++) {
+          const a = bodies[i], b = bodies[j];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d2 = dx * dx + dy * dy + SOFTENING2;
+          const invD3 = 1 / (d2 * Math.sqrt(d2));
+          const s = G * invD3;
+          a.ax += s * b.m * dx; a.ay += s * b.m * dy;
+          b.ax -= s * a.m * dx; b.ay -= s * a.m * dy;
+        }
+      }
+    }
+
+    // One symplectic velocity-Verlet step (kick-drift-kick).
+    function step(dt) {
+      for (const b of bodies) {
+        if (b.held) continue;
+        b.vx += 0.5 * b.ax * dt;
+        b.vy += 0.5 * b.ay * dt;
+        b.x  += b.vx * dt;
+        b.y  += b.vy * dt;
+      }
+      computeAccel();
+      for (const b of bodies) {
+        if (b.held) continue;
+        b.vx += 0.5 * b.ax * dt;
+        b.vy += 0.5 * b.ay * dt;
+      }
+    }
+
+    function comShift() {
+      let cx = 0, cy = 0, M = 0;
+      for (const b of bodies) { cx += b.m * b.x; cy += b.m * b.y; M += b.m; }
+      return { cx: cx / M, cy: cy / M };
+    }
+
+    function toPixel(x, y, com) {
+      return [W / 2 + (x - com.cx) * VIEW_SCALE,
+              H / 2 + (y - com.cy) * VIEW_SCALE];
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      const com = comShift();
+
+      // record trails (in sim space)
+      for (const b of bodies) {
+        b.trail.push(b.x, b.y);
+        if (b.trail.length > TRAIL * 2) b.trail.splice(0, b.trail.length - TRAIL * 2);
+      }
+
+      // trails
+      for (const b of bodies) {
+        for (let i = 2; i < b.trail.length; i += 2) {
+          const t = i / b.trail.length;
+          const [x0, y0] = toPixel(b.trail[i - 2], b.trail[i - 1], com);
+          const [x1, y1] = toPixel(b.trail[i], b.trail[i + 1], com);
+          ctx.strokeStyle = `hsla(${b.hue}, 90%, 70%, ${t * 0.5})`;
+          ctx.lineWidth = t * 2.4;
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y1);
+          ctx.stroke();
+        }
+      }
+
+      // bodies
+      for (const b of bodies) {
+        const [px, py] = toPixel(b.x, b.y, com);
+        const r = 5 + b.m * 4;
+        const glow = ctx.createRadialGradient(px, py, 0, px, py, r * 3.4);
+        glow.addColorStop(0, `hsla(${b.hue}, 95%, 75%, 0.95)`);
+        glow.addColorStop(1, `hsla(${b.hue}, 95%, 75%, 0)`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(px, py, r * 3.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `hsl(${b.hue}, 90%, 84%)`;
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+        if (b.held) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(px, py, r + 6, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    let last = performance.now();
+    let acc = 0;
+    function loop(now) {
+      const frame = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      acc += frame * TIME_SCALE;
+      // fixed-timestep integration for reproducible, stable dynamics
+      let guard = 0;
+      while (acc >= DT && guard < 4000) { step(DT); acc -= DT; guard++; }
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    seedFigureEight();
+    requestAnimationFrame(loop);
+
+    /* ---------- interaction: grab & slingshot a body ---------- */
+    let held = null, lastPx = null, lastPy = null;
+
+    function toSim(e) {
+      const rect = canvas.getBoundingClientRect();
+      const p = e.touches ? e.touches[0] : e;
+      const com = comShift();
+      const px = (p.clientX - rect.left) * (W / rect.width);
+      const py = (p.clientY - rect.top) * (H / rect.height);
+      return {
+        x: (px - W / 2) / VIEW_SCALE + com.cx,
+        y: (py - H / 2) / VIEW_SCALE + com.cy
+      };
+    }
+
+    function pointerDown(e) {
+      const s = toSim(e);
+      // grab the nearest body within a reasonable radius
+      let best = null, bestD = 0.18 * 0.18;
+      for (const b of bodies) {
+        const d = (b.x - s.x) ** 2 + (b.y - s.y) ** 2;
+        if (d < bestD) { bestD = d; best = b; }
+      }
+      if (best) {
+        held = best; held.held = true;
+        held.trail.length = 0;
+        lastPx = s.x; lastPy = s.y;
+        e.preventDefault();
+      }
+    }
+    function pointerMove(e) {
+      if (!held) return;
+      const s = toSim(e);
+      // velocity estimated from pointer motion, so releasing slingshots it
+      held.vx = (s.x - lastPx) / DT * 0.04;
+      held.vy = (s.y - lastPy) / DT * 0.04;
+      held.x = s.x; held.y = s.y;
+      lastPx = s.x; lastPy = s.y;
+      computeAccel();
+      e.preventDefault();
+    }
+    function pointerUp() {
+      if (!held) return;
+      held.held = false;
+      held = null;
+    }
+
+    canvas.addEventListener('mousedown', pointerDown);
+    window.addEventListener('mousemove', pointerMove);
+    window.addEventListener('mouseup', pointerUp);
+    canvas.addEventListener('touchstart', pointerDown, { passive: false });
+    canvas.addEventListener('touchmove', pointerMove, { passive: false });
+    window.addEventListener('touchend', pointerUp);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'r' || e.key === 'R') seedFigureEight();
+      else if (e.key === ' ') { e.preventDefault(); seedRandom(); }
+    });
+
+    document.addEventListener('visibilitychange', () => { last = performance.now(); acc = 0; });
+  })();
+  </script>
+</body>
+</html>

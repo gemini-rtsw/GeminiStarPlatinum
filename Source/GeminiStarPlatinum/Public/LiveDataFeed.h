@@ -13,5 +13,7 @@ UCLASS()
 class GEMINISTARPLATINUM_API ULiveDataFeed : public UObject
 {
 	GENERATED_BODY()
-	
+public:
+	void Connect();
+	void Disconnect();
 };

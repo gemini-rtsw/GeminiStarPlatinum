@@ -5,5 +5,9 @@
 
 void UObservatoryCoordinator::SetControlMode(EControlMode NewMode)
 {
-	return;
+	if (NewMode == Mode) return;
+	Mode = NewMode;
+	if (Mode == EControlMode::Live) Feed->Connect();
+	else                            Feed->Disconnect();
+	OnControlModeChanged.Broadcast(Mode);
 }

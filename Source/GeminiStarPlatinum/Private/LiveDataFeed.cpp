@@ -3,3 +3,12 @@
 
 #include "LiveDataFeed.h"
 
+void Connect()
+{
+	return;
+}
+
+void Disconnect()
+{
+	return;
+}
