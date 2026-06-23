@@ -29,3 +29,8 @@ void UTelescopeModel::SetTarget(float Azim, float Elev, float Cass)
 	SetElevTarget(Elev);
 	SetCassTarget(Cass);
 }
+
+void UTelescopeModel::ToggleLaser(bool bLaserState)
+{
+	bLaserOn = bLaserState;
+}

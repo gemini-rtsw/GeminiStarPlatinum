@@ -186,7 +186,7 @@ void AMovingTelescope::Tick(float DeltaTime)
 
     FVector ElevDirection = Elev->GetForwardVector();
     DrawDebugLine(GetWorld(), Elev->GetComponentLocation() + (ElevDirection * -500.f), Elev->GetComponentLocation() + (ElevDirection * 500.f), FColor::Emerald, false, 0.f, 1, 4.f);
-    if (bLaserOn)
+    if (Model->bLaserOn)
     {
         DrawDebugLine(GetWorld(), Elev->GetComponentLocation() + (ElevDirection * 1500.f), Elev->GetComponentLocation() + (ElevDirection * 100000.f), FColor::Yellow, false, 0.f, 0, 10.f);
     }

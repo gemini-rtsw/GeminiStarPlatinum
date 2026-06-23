@@ -25,6 +25,9 @@ public:
 
 	UFUNCTION(BlueprintCallable) void SetControlMode(EControlMode NewMode);
 
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
+
 private:
 	UPROPERTY() ULiveDataFeed* Feed = nullptr;
 };

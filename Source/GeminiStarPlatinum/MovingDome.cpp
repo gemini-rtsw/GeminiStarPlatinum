@@ -224,8 +224,8 @@ void AMovingDome::Tick(float DeltaTime)
 
 	// Update motion of components
     TwistComponent(DomeConstraint, Model->DomeTwistTarget, DomeTwistStrength, DomeVelocityTarget, DomeVelocityDamping, DomeAngularThreshold);
-    SwingComponent(TopSConstraint, TopSSwingTarget, TopSSwingStrength, TopSVelocityTarget, TopSVelocityDamping, TopSAngularThreshold, TopSAngularOffset);
-    SwingComponent(BotSConstraint, BotSSwingTarget, BotSSwingStrength, BotSVelocityTarget, BotSVelocityDamping, BotSAngularThreshold, BotSAngularOffset);
+    SwingComponent(TopSConstraint, Model->TopSSwingTarget, TopSSwingStrength, TopSVelocityTarget, TopSVelocityDamping, TopSAngularThreshold, TopSAngularOffset);
+    SwingComponent(BotSConstraint, Model->BotSSwingTarget, BotSSwingStrength, BotSVelocityTarget, BotSVelocityDamping, BotSAngularThreshold, BotSAngularOffset);
     SlideComponents();
 }
 
@@ -296,6 +296,6 @@ void AMovingDome::SlideComponents() {
         BotVConstraint->SetLinearDriveParams(VentSlideStrength, VentVelocityDamping, 0.f);
     }
     */
-    SlideComponent(TopVConstraint, TopV, TopVRestOffset, VentSlideTarget);
-    SlideComponent(BotVConstraint, BotV, BotVRestOffset, -VentSlideTarget);
+    SlideComponent(TopVConstraint, TopV, TopVRestOffset, Model->VentSlideTarget);
+    SlideComponent(BotVConstraint, BotV, BotVRestOffset, -(Model->VentSlideTarget));
 }
