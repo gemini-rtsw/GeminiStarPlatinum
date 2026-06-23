@@ -1,19 +1,21 @@
 """Positional data sources for the GeminiStarPlatinum live feed bridge.
 
 A DataSource produces the positional payload that the TCP server streams to the
-Unreal sim. The payload schema is the single source of truth shared with the C++
+Unreal sim. The payload schema is the ONLY format to be shared with the C++
 side (ULiveDataFeed::ApplyLine):
 
     {
-        "azim":       float,   # telescope azimuth, degrees
-        "elev":       float,   # telescope elevation, degrees
-        "cass":       float,   # Cassegrain rotator, degrees
-        "dome_twist": float,   # dome azimuth/twist, degrees
-        "dome_open":  bool,    # dome shutter + vents open/closed
+        "azim"        : float,   # telescope azimuth, degrees
+        "elev"        : float,   # telescope elevation, degrees
+        "cass"        : float,   # Cassegrain rotator, degrees
+        "dome_twist"  : float,   # dome azimuth/twist, degrees
+        "top_shutter" : float,   # top shutter swing, degrees
+        "bot_shutter" : float,   # bottom shutter swing, degrees
+        "vent"        : float,   # west AND east vent slide, Unreal position offset
     }
 
 Add a new source by subclassing DataSource and implementing read(). Selection
-happens in server.py via the --source flag, so nothing else needs to change.
+happens in server.py via the --source flag.
 """
 
 from __future__ import annotations
@@ -25,8 +27,10 @@ from abc import ABC, abstractmethod
 
 # Keys the Unreal side understands. Kept here so a source can be validated/documented
 # against one list.
-PAYLOAD_KEYS = ("azim", "elev", "cass", "dome_twist", "dome_open")
+PAYLOAD_KEYS = ("azim", "elev", "cass", "dome_twist", "top_shutter", "bot_shutter", "vent")
 
+def pct_to_range(p, lo, hi) -> float:
+    return (1-p)*lo + p*hi
 
 class DataSource(ABC):
     """Abstract positional data source."""
@@ -54,7 +58,9 @@ class MockSource(DataSource):
             "elev": -60.0 + 40.0 * math.sin(t * 0.07),   # sweeps around -60
             "cass": 120.0 * math.sin(t * 0.05),
             "dome_twist": 180.0 * math.sin(t * 0.08),
-            "dome_open": (int(t) // 15) % 2 == 0,         # toggle every 15s
+            "top_shutter": 38.0 + 30.0 * math.sin(t*0.05),
+	        "bot_shutter": -8.25 + 4.75 * math.sin(t*0.05),
+            "vent": 250.0 + 150.0 * math.sin(t*0.09),
         }
 
 
@@ -78,10 +84,27 @@ class EpicsSource(DataSource):
         self._pvs = {key: PV(name) for key, name in pv_map.items()}
 
     def read(self) -> dict:
-        payload: dict = {}
+        raw: dict = {}
         for key, pv in self._pvs.items():
             value = pv.get()
-            if value is None:
-                continue
-            payload[key] = bool(value) if key == "dome_open" else float(value)
+            if value is not None:
+                raw[key] = float(value)
+
+        payload: dict = {}
+        for key in {"azim", "elev", "cass", "dome_twist"}:
+            if key in raw:
+                payload[key] = raw[key]
+
+        # Shutter and vent values are stored in EPICS as 0-100% open. Convert to
+        # Unreal's expected range.
+        # Chosen lo, hi values are magic numbers derived from physical limits of telescope and dome.
+        if "top_shutter" in raw:
+            payload["top_shutter"] = pct_to_range(raw["top_shutter"]/100.0, -7.0, 83.0)
+        if "bot_shutter" in raw:
+            payload["bot_shutter"] = pct_to_range(raw["bot_shutter"]/100.0, -3.5, -13.0)
+        
+        # Average the two independent vent slide percentages into a single value for Unreal
+        vents = [raw[k] for k in ("vent_west", "vent_east") if k in raw]
+        if vents:
+            payload["vent"] = pct_to_range(sum(vents/len(vents)/100.0), 0.0, 500.0)
         return payload

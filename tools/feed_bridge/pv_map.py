@@ -1,15 +1,17 @@
 """Mapping from payload keys to TCS EPICS PV names.
 
-Centralizing PV naming here means the EPICS source and any future tooling share one
-definition, and updating to real observatory PV names is a single-file change.
+PV naming is centralized here to ensure consistent standards throughout the python 
 
-The names below are PLACEHOLDERS — replace them with the actual Gemini TCS PVs.
+The names below are reflective of the actual Gemini EPICS PV keys 
 """
 
 DEFAULT_PV_MAP = {
-    "azim": "tcs:telescope:azimuth",
-    "elev": "tcs:telescope:elevation",
-    "cass": "tcs:telescope:cassRotator",
-    "dome_twist": "tcs:dome:azimuth",
-    "dome_open": "tcs:dome:shutterOpen",
+    "azim"           : "mc:azCurrentPos",
+    "elev"           : "mc:elCurrentPos",
+    "cass"           : "cr:crCurrentPos",
+    "dome_twist"     : "ec:domePos",
+    "top_shutter"    : "ec:topShtrPos",
+    "bot_shutter"    : "ec:botShtrPos",
+    "vent_west"      : "ec:westVentGatePos",
+    "vent_east"      : "ec:eastVentGatePos",
 }
