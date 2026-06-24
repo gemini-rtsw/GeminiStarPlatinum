@@ -47,8 +47,8 @@ public:
 	/// <summary>
 	/// Sets how far the vents will slide open in Unreal world units
 	/// </summary>
-	/// <param name="Degrees">Slide in world units</param>
-	UFUNCTION(BlueprintCallable) void SetVentTarget(float Degrees);
+	/// <param name="SlideAmount">Slide in world units. Range 0 - 500.0</param>
+	UFUNCTION(BlueprintCallable) void SetVentTarget(float SlideAmount);
 
 	/// <summary>
 	/// Toggles bOpen, controls dome shutter and vents open/closed state

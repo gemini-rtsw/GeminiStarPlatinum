@@ -164,8 +164,9 @@ void ULiveDataFeed::ApplyLine(const FString& Line)
 	{
 		double Value;
 		if (Json->TryGetNumberField(TEXT("dome_twist"), Value)) Dome->SetDomeTwistTarget(static_cast<float>(Value));
-		bool bOpen;
-		if (Json->TryGetBoolField(TEXT("dome_open"), bOpen)) Dome->SetOpen(bOpen);
+		if (Json->TryGetNumberField(TEXT("top_shutter"), Value)) Dome->SetTopShutterTarget(static_cast<float>(Value));
+		if (Json->TryGetNumberField(TEXT("bot_shutter"), Value)) Dome->SetBotShutterTarget(static_cast<float>(Value));
+		if (Json->TryGetNumberField(TEXT("vent"), Value)) Dome->SetVentTarget(static_cast<float>(Value));
 	}
 }
 

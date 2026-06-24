@@ -15,7 +15,7 @@ class UDomeModel;
 /**
  * Prototype live data feed. Connects (as a TCP client) to an external Python bridge
  * that streams newline-delimited JSON positional samples, e.g.
- *   {"azim":180.0,"elev":-60.0,"cass":120.0,"dome_twist":0.0,"dome_open":false}\n
+ *   {"azim":180.0,"elev":-60.0,"cass":120.0,"dome_twist":0.0,"top_shutter":45.0,"bot_shutter":-7.5,"vent":300.0}\n
  * Each sample is parsed and pushed into UTelescopeModel / UDomeModel via their setters.
  *
  * This object is the ONLY place that knows about sockets/JSON; swapping the transport

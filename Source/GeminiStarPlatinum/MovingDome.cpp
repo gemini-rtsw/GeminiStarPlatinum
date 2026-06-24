@@ -27,7 +27,7 @@ AMovingDome::AMovingDome()
     BotSVelocityDamping = 1000.f;
     BotSAngularThreshold = 0.5f;
     BotSAngularOffset = -8.25f;
-    BotSAngularLimit = 4.75f; // Target range between -13 and 3.5
+    BotSAngularLimit = 4.75f; // Target range between -13 and -3.5
 
     VentSlideTarget = 0.f;
     VentSlideStrength = 1000.f;
@@ -207,20 +207,6 @@ void AMovingDome::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 
     if (!Model) Model = GetGameInstance()->GetSubsystem<UDomeModel>();
-
-	// Update targets based on whether the dome is open or closed
-    if (bOpen)
-    {
-		TopSSwingTarget = 83.f; // Yea the targets are calculated from Logan's numbers, but I don't remember how I got them or where the orignal numbers are
-        BotSSwingTarget = -13.f;
-        VentSlideTarget = 500.f;
-    }
-    else
-    {
-        TopSSwingTarget = -7.f;
-        BotSSwingTarget = 3.5f;
-        VentSlideTarget = 0.f;
-    }
 
 	// Update motion of components
     TwistComponent(DomeConstraint, Model->DomeTwistTarget, DomeTwistStrength, DomeVelocityTarget, DomeVelocityDamping, DomeAngularThreshold);
