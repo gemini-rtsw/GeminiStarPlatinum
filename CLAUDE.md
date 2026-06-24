@@ -29,6 +29,15 @@ Workflow is **Editor + Live Coding** with a default Epic Games Launcher engine i
 
 There is **no automated test suite** (no Automation specs, no test target). Don't go looking for one; verify changes by running the simulation in the editor.
 
+## Coding/Documentation style
+
+- When commenting functions, use Doxygen-style XML comments for documentation generation purposes.
+- Be highly concise and precise when describing functions and variables. Include relevant units and ranges (may point to relevant DataAsset instead if it exists)
+
+## Git 
+
+Do NOT stage or push commits without the express permission of the user
+
 ## Architecture — MVC (migration in progress)
 
 The codebase is mid-refactor toward an MVC split (noted explicitly in `AssemblyModel.h`). Understanding it requires reading the model subsystems and the actors together:
