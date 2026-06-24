@@ -42,16 +42,18 @@ mirrored in `ULiveDataFeed::ApplyLine` on the C++ side. Missing keys are ignored
 sim; extra keys are harmless.
 
 ```json
-{"azim": 180.0, "elev": -60.0, "cass": 120.0, "dome_twist": 0.0, "dome_open": false}
+{"azim": 180.0, "elev": -60.0, "cass": 120.0, "dome_twist": 0.0, "top_shutter": 45.0, "bot_shutter": -9.0, "vent": 300.0}
 ```
 
-| Key          | Type  | Meaning                          |
-|--------------|-------|----------------------------------|
-| `azim`       | float | Telescope azimuth, degrees       |
-| `elev`       | float | Telescope elevation, degrees     |
-| `cass`       | float | Cassegrain rotator, degrees      |
-| `dome_twist` | float | Dome azimuth/twist, degrees      |
-| `dome_open`  | bool  | Dome shutter + vents open/closed |
+| Key            | Type  | Meaning                          |
+|----------------|-------|----------------------------------|
+| `azim`         | float | Telescope azimuth, degrees       |
+| `elev`         | float | Telescope elevation, degrees     |
+| `cass`         | float | Cassegrain rotator, degrees      |
+| `dome_twist`   | float | Dome azimuth/twist, degrees      |
+| `top_shutter`  | float | Top shutter swing, degrees       |
+| `bot_shutter`  | float | Bottom shutter swing, degrees    |
+| `vent`         | float | Vent slide, world units          |
 
 ## Running
 

@@ -33,6 +33,23 @@ public:
 	/// </summary>
 	/// <param name="Degrees">Angular twist in degrees (float)</param>
 	UFUNCTION(BlueprintCallable) void SetDomeTwistTarget(float Degrees);
+
+	/// <summary>
+	/// Sets where the top shutter will point/twist to in degrees
+	/// </summary>
+	/// <param name="Degrees">Angular swing in degrees (float)</param>
+	UFUNCTION(BlueprintCallable) void SetTopShutterTarget(float Degrees);
+	/// <summary>
+	/// Sets where the bottom shutter will point/twist to in degrees
+	/// </summary>
+	/// <param name="Degrees">Angular swing in degrees</param>
+	UFUNCTION(BlueprintCallable) void SetBotShutterTarget(float Degrees);
+	/// <summary>
+	/// Sets how far the vents will slide open in Unreal world units
+	/// </summary>
+	/// <param name="Degrees">Slide in world units</param>
+	UFUNCTION(BlueprintCallable) void SetVentTarget(float Degrees);
+
 	/// <summary>
 	/// Toggles bOpen, controls dome shutter and vents open/closed state
 	/// </summary>

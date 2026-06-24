@@ -45,7 +45,7 @@ class MockSource(DataSource):
     """Synthetic motion so the whole pipeline is testable with no hardware.
 
     Drives each axis with a slow sine sweep within its physical-ish limits and
-    toggles the dome open/closed on a fixed period.
+    sweeps the shutter/vents' positional ranges.
     """
 
     def __init__(self) -> None:
@@ -59,7 +59,7 @@ class MockSource(DataSource):
             "cass": 120.0 * math.sin(t * 0.05),
             "dome_twist": 180.0 * math.sin(t * 0.08),
             "top_shutter": 38.0 + 30.0 * math.sin(t*0.05),
-	        "bot_shutter": -8.25 + 4.75 * math.sin(t*0.05),
+            "bot_shutter": -8.25 + 4.75 * math.sin(t*0.05),
             "vent": 250.0 + 150.0 * math.sin(t*0.09),
         }
 
@@ -106,5 +106,5 @@ class EpicsSource(DataSource):
         # Average the two independent vent slide percentages into a single value for Unreal
         vents = [raw[k] for k in ("vent_west", "vent_east") if k in raw]
         if vents:
-            payload["vent"] = pct_to_range(sum(vents/len(vents)/100.0), 0.0, 500.0)
+            payload["vent"] = pct_to_range(sum(vents)/len(vents)/100.0, 0.0, 500.0)
         return payload
