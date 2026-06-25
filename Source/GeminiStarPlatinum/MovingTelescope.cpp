@@ -235,3 +235,18 @@ void AMovingTelescope::DisplayCenterOfMass()
         }
     }
 }
+
+float AMovingTelescope::GetAzimTwist()
+{
+    return AzimConstraint->GetCurrentTwist();
+}
+
+float AMovingTelescope::GetElevSwing()
+{
+	return -(ElevConstraint->GetCurrentSwing2());
+}
+
+float AMovingTelescope::GetCassTwist()
+{
+	return CassConstraint->GetCurrentTwist();
+}

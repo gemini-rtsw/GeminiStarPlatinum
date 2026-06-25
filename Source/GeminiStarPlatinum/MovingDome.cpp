@@ -285,3 +285,7 @@ void AMovingDome::SlideComponents() {
     SlideComponent(TopVConstraint, TopV, TopVRestOffset, Model->VentSlideTarget);
     SlideComponent(BotVConstraint, BotV, BotVRestOffset, -(Model->VentSlideTarget));
 }
+
+float AMovingDome::GetDomeTwist() {
+    return DomeConstraint->GetCurrentTwist();
+}

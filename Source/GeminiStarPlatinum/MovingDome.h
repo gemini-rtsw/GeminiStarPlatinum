@@ -104,6 +104,8 @@ public:
     UPROPERTY(BlueprintReadWrite)
     float BotVRestOffset = 0.f;
 
+    UFUNCTION(BlueprintCallable)
+	float GetDomeTwist();
 
 protected:
     // Called when the game starts or when spawned

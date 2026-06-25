@@ -88,6 +88,13 @@ public:
 
     // UBillboardComponent* CreateBillboardComponent();
 
+    UFUNCTION(BlueprintCallable)
+    float GetAzimTwist();
+    UFUNCTION(BlueprintCallable)
+    float GetElevSwing();
+    UFUNCTION(BlueprintCallable)
+    float GetCassTwist();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
