@@ -15,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnControlModeChanged, EControlMode,
  * Contains general movement rules coordinated between dome, telescope; Manages data access to TCS Epics API
  */
 
-UCLASS()
+UCLASS(BlueprintType)
 class GEMINISTARPLATINUM_API UObservatoryCoordinator : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
