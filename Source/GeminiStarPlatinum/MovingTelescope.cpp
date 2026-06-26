@@ -243,7 +243,8 @@ float AMovingTelescope::GetAzimTwist()
 
 float AMovingTelescope::GetElevSwing()
 {
-	return -(ElevConstraint->GetCurrentSwing2());
+	return -(ElevConstraint->GetCurrentSwing2() - ElevAngularOffset) + 3.f; // TODO: 3.f is a fudge factor to make the swing match the actual elevation angle
+                                                                            //       Check what makes this happen.
 }
 
 float AMovingTelescope::GetCassTwist()
