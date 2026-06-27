@@ -12,6 +12,17 @@ class UGameInstance;
 class UTelescopeModel;
 class UDomeModel;
 
+UENUM(BlueprintType) enum class EFeedStatus : uint8
+{
+	Disconnected,   /*< Used when feed is not being used; manual, Disconnect() called, not trying */
+	Connecting,     /*<        First attempt: socket is connected but not returning data yet      */
+	Live,           /*<                 Feed is connected and bytes are arriving                  */
+	Reconnecting,   /*<   Lost established/attempted link; currently counting down to retry link  */
+	Failed,         /*<              Crossed attempt threshold; retrying in background            */
+};
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnFeedStatusChangedNative, EFeedStatus);
+
 /**
  * Prototype live data feed. Connects (as a TCP client) to an external Python bridge
  * that streams newline-delimited JSON positional samples, e.g.
@@ -44,23 +55,46 @@ public:
 	virtual bool IsTickableWhenPaused() const override { return true; }
 	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Conditional; }
 
+	float GetTimeUntilReconnect();
+	int32 GetReconnectAttempts();
+
 	// Connection target. Defaults match the prototype Python bridge (tools/feed_bridge).
 	UPROPERTY(EditAnywhere, Category = "LiveFeed") FString Host = TEXT("127.0.0.1");
 	UPROPERTY(EditAnywhere, Category = "LiveFeed") int32 Port = 9100;
 
 	/** Seconds between reconnect attempts while in the connected (Live) state. */
 	UPROPERTY(EditAnywhere, Category = "LiveFeed") float ReconnectInterval = 2.f;
+	UPROPERTY(EditAnywhere, Category = "LiveFeed") int32 MaxReconnectAttempts = 5;
+
+	/**
+	 * Seconds to wait for a socket to deliver its first byte before treating the attempt
+	 * as failed. A non-blocking connect to a dead/absent peer is not reliably reported
+	 * through recv(), so this timeout is what advances ReconnectAttempts toward Failed.
+	 */
+	UPROPERTY(EditAnywhere, Category = "LiveFeed") float ConnectTimeout = 2.f;
+
+	FOnFeedStatusChangedNative OnStatusChanged;
 
 private:
 	/** Tries to (re)open the socket. Returns true on success. */
 	bool OpenSocket();
 	/** Drains all available bytes, splitting on '\n' and applying each complete line. */
 	void PollSocket();
+	/** Tears down the socket and schedules a reconnect, advancing status to Reconnecting/Failed. */
+	void HandleDisconnect();
 	/** Parses one JSON line and pushes it to the models. Tolerant of missing/extra keys. */
 	void ApplyLine(const FString& Line);
 
 	UTelescopeModel* GetTelescope();
 	UDomeModel* GetDome();
+
+
+	/// <summary>
+	/// Sets current connection status. Early exits if unchanged, assigns + broadcasts OnStatusChanged otherwise.
+	/// </summary>
+	/// <param name="NewStatus">New connection status (EFeedStatus)</param>
+	void SetStatus(EFeedStatus NewStatus);
+
 
 	UPROPERTY() UGameInstance* GameInstance = nullptr;
 	UPROPERTY() UTelescopeModel* TelescopeModel = nullptr;
@@ -71,9 +105,21 @@ private:
 	/** True while the feed should be live (set by Connect, cleared by Disconnect). */
 	bool bConnected = false;
 
+	/** True once the current socket has delivered at least one byte (connect confirmed). */
+	bool bEstablished = false;
+
 	/** Accumulates partial reads until a full '\n'-terminated line is available. */
 	FString RxBuffer;
 
+	/** Current connection status; used to gate OnStatusChanged. */
+	EFeedStatus Status = EFeedStatus::Disconnected;
+
 	/** Counts down to the next reconnect attempt when the socket is lost mid-session. */
 	float TimeUntilReconnect = 0.f;
+
+	/** Counts up while a socket is open but not yet established; bounded by ConnectTimeout. */
+	float TimeConnecting = 0.f;
+
+	/** Counts how many times we've tried to reconnect since the last successful connection. */
+	int32 ReconnectAttempts = 0;
 };

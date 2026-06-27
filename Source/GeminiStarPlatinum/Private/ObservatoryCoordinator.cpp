@@ -3,6 +3,13 @@
 
 #include "ObservatoryCoordinator.h"
 
+void UObservatoryCoordinator::HandleFeedStatusChanged(EFeedStatus NewStatus)
+{
+	if (NewStatus == FeedStatus) return;
+	FeedStatus = NewStatus;
+	OnFeedStatusChanged.Broadcast(FeedStatus);
+}
+
 void UObservatoryCoordinator::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -12,6 +19,7 @@ void UObservatoryCoordinator::Initialize(FSubsystemCollectionBase& Collection)
 	// switching to Live mode would null-deref.
 	Feed = NewObject<ULiveDataFeed>(this);
 	Feed->Initialize(GetGameInstance());
+	Feed->OnStatusChanged.AddUObject(this, &UObservatoryCoordinator::HandleFeedStatusChanged);
 }
 
 void UObservatoryCoordinator::Deinitialize()
@@ -31,4 +39,14 @@ void UObservatoryCoordinator::SetControlMode(EControlMode NewMode)
 	if (Mode == EControlMode::Live) Feed->Connect();
 	else                            Feed->Disconnect();
 	OnControlModeChanged.Broadcast(Mode);
+}
+
+float UObservatoryCoordinator::GetTimeUntilReconnect() const
+{
+	return Feed ? Feed->GetTimeUntilReconnect() : 0.f;
+}
+
+int32 UObservatoryCoordinator::GetReconnectAttempts() const
+{
+	return Feed ? Feed->GetReconnectAttempts() : 0;
 }

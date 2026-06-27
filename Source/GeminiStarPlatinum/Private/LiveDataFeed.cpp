@@ -17,6 +17,15 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogLiveFeed, Log, All);
 
+void ULiveDataFeed::SetStatus(EFeedStatus NewStatus)
+{
+	if (Status != NewStatus)
+	{
+		Status = NewStatus;
+		OnStatusChanged.Broadcast(Status);
+	}
+}
+
 void ULiveDataFeed::Initialize(UGameInstance* InGameInstance)
 {
 	GameInstance = InGameInstance;
@@ -26,6 +35,8 @@ void ULiveDataFeed::Connect()
 {
 	bConnected = true;
 	TimeUntilReconnect = 0.f;
+	ReconnectAttempts = 0;
+	SetStatus(EFeedStatus::Connecting);
 	OpenSocket();
 }
 
@@ -39,6 +50,7 @@ void ULiveDataFeed::Disconnect()
 		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
 		Socket = nullptr;
 	}
+	SetStatus(EFeedStatus::Disconnected);
 }
 
 bool ULiveDataFeed::OpenSocket()
@@ -76,6 +88,8 @@ bool ULiveDataFeed::OpenSocket()
 	// Non-blocking connect: returns immediately; success is confirmed by later reads.
 	NewSocket->Connect(*InternetAddr);
 	Socket = NewSocket;
+	bEstablished = false;
+	TimeConnecting = 0.f;
 	RxBuffer.Empty();
 	UE_LOG(LogLiveFeed, Log, TEXT("LiveFeed: connecting to %s:%d"), *Host, Port);
 	return true;
@@ -101,30 +115,77 @@ void ULiveDataFeed::Tick(float DeltaTime)
 	}
 
 	PollSocket();
+
+	// Bound the time spent waiting for a connection to deliver its first byte. A
+	// non-blocking connect to an absent peer never reports failure through recv(), so
+	// without this an attempt would sit in Connecting/Reconnecting forever and never
+	// advance ReconnectAttempts toward Failed. PollSocket may have already torn the
+	// socket down, so re-check it here.
+	if (Socket && !bEstablished)
+	{
+		TimeConnecting += DeltaTime;
+		if (TimeConnecting >= ConnectTimeout)
+		{
+			HandleDisconnect();
+		}
+	}
 }
 
 void ULiveDataFeed::PollSocket()
 {
 	uint8 Buffer[2048];
-	int32 BytesRead = 0;
 
-	// Drain everything currently available without blocking.
-	while (Socket->Recv(Buffer, sizeof(Buffer), BytesRead, ESocketReceiveFlags::None) && BytesRead > 0)
+	// Drain everything currently available without blocking. UE's FSocket::Recv on a
+	// stream socket reports state through its return value, NOT GetConnectionState():
+	//   true,  BytesRead > 0  -> data
+	//   true,  BytesRead == 0 -> SE_EWOULDBLOCK: connected, no data this frame (the
+	//                            common case, since the feed is idle between samples)
+	//   false                 -> graceful peer close (recv()==0), a hard socket error,
+	//                            or (on Windows) the non-blocking connect still completing
+	while (true)
 	{
-		// Buffer is not null-terminated; decode exactly BytesRead bytes as UTF-8.
-		FUTF8ToTCHAR Converted(reinterpret_cast<const ANSICHAR*>(Buffer), BytesRead);
-		RxBuffer.AppendChars(Converted.Get(), Converted.Length());
-	}
+		int32 BytesRead = 0;
+		const bool bRecvOk = Socket->Recv(Buffer, sizeof(Buffer), BytesRead, ESocketReceiveFlags::None);
 
-	// If the peer closed the connection, drop the socket so Tick schedules a reconnect.
-	ESocketConnectionState State = Socket->GetConnectionState();
-	if (State == SCS_ConnectionError)
-	{
-		UE_LOG(LogLiveFeed, Log, TEXT("LiveFeed: connection lost, will retry"));
-		Socket->Close();
-		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
-		Socket = nullptr;
-		TimeUntilReconnect = ReconnectInterval;
+		if (bRecvOk)
+		{
+			if (BytesRead > 0)
+			{
+				bEstablished = true;
+				SetStatus(EFeedStatus::Live);
+				ReconnectAttempts = 0;
+
+				// Buffer is not null-terminated; decode exactly BytesRead bytes as UTF-8.
+				FUTF8ToTCHAR Converted(reinterpret_cast<const ANSICHAR*>(Buffer), BytesRead);
+				RxBuffer.AppendChars(Converted.Get(), Converted.Length());
+				continue;
+			}
+
+			// SE_EWOULDBLOCK: nothing more to read this frame, still connected.
+			break;
+		}
+
+		// Recv failed. Once the connection has been established, any failure is a real
+		// disconnect (graceful close or error). Before it is established, tolerate the
+		// "connect still in progress" codes so we don't tear down mid-handshake. We only
+		// consult the error code in the not-yet-established case, because a prior
+		// successful recv leaves a stale last-error value that would be misleading.
+		if (!bEstablished)
+		{
+			const ESocketErrors LastErr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLastErrorCode();
+			const bool bStillConnecting =
+				LastErr == SE_NO_ERROR ||
+				LastErr == SE_EWOULDBLOCK ||
+				LastErr == SE_ENOTCONN ||
+				LastErr == SE_EINPROGRESS ||
+				LastErr == SE_EALREADY;
+			if (bStillConnecting)
+			{
+				break;   // handshake not finished yet; try again next tick
+			}
+		}
+
+		HandleDisconnect();
 		return;
 	}
 
@@ -140,6 +201,25 @@ void ULiveDataFeed::PollSocket()
 			ApplyLine(Line);
 		}
 	}
+}
+
+void ULiveDataFeed::HandleDisconnect()
+{
+	UE_LOG(LogLiveFeed, Log, TEXT("LiveFeed: connection lost, will retry"));
+
+	if (Socket)
+	{
+		Socket->Close();
+		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+		Socket = nullptr;
+	}
+
+	bEstablished = false;
+	TimeConnecting = 0.f;
+	RxBuffer.Empty();
+	TimeUntilReconnect = ReconnectInterval;
+	ReconnectAttempts++;
+	SetStatus(ReconnectAttempts >= MaxReconnectAttempts ? EFeedStatus::Failed : EFeedStatus::Reconnecting);
 }
 
 void ULiveDataFeed::ApplyLine(const FString& Line)
@@ -186,6 +266,16 @@ UDomeModel* ULiveDataFeed::GetDome()
 		DomeModel = GameInstance->GetSubsystem<UDomeModel>();
 	}
 	return DomeModel;
+}
+
+float ULiveDataFeed::GetTimeUntilReconnect()
+{
+	return TimeUntilReconnect;
+}
+
+int32 ULiveDataFeed::GetReconnectAttempts()
+{
+	return ReconnectAttempts;
 }
 
 TStatId ULiveDataFeed::GetStatId() const
