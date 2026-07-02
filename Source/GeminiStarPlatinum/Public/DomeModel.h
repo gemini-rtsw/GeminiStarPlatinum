@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AssemblyModel.h"
+#include "MotionLimitSettings.h"
 #include "DomeModel.generated.h"
 
 /**
@@ -23,32 +24,59 @@ public:
 	/// Indicates whether the dome shutter and vents are open or not
 	/// </summary>
 	UPROPERTY(BlueprintReadOnly) bool  bOpen           =  false;
+	/// <summary>
+	/// State change flag, set to true when a target is changed and not yet broadcasted. Set to false after broadcasting.
+	/// Setters should handle this once individually; SetTargets() should handle this once for all targets.
+	/// DO NOT MIX AND MATCH BROADCAST FLAGS (i.e. having True for one target and False for another);
+	/// Early-returns in setters prevent broadcasting if target is unchanged regardless of bDirty state.
+	/// Therefore, if you want to broadcast, set all setters with BroadcastFlag = true; 
+	/// if you don't want to broadcast/want to handle broadcasting multiple targets, set all setters with BroadcastFlag = false.
+	/// </summary>
+	UPROPERTY(BlueprintReadOnly) bool  bDirty          =  false;
 
-	// Rotational imits, temporary until a data asset is created representing real life physical limitations
-	UPROPERTY(EditAnywhere)      float TwistMin        = -180.f, 
-		                               TwistMax        =  180.f;
+	// Stores motion limits for everything in the observatory. 
+	UPROPERTY(BlueprintReadOnly) const UMotionLimitSettings* MotionLimitSettings;
+
+	// Rotational limits, retrieved from MotionLimitSettings and kept here for less indirection.
+	UPROPERTY(EditAnywhere)      float DomeTwistMin        = -180.f, 
+		                               DomeTwistMax        =  180.f;
+	UPROPERTY(EditAnywhere)      float TopShutterSwingMin  = -7.f,
+									   TopShutterSwingMax  =  83.f;
+	UPROPERTY(EditAnywhere)      float BotShutterSwingMin  = -13.f,
+									   BotShutterSwingMax  = -3.5f;
+	UPROPERTY(EditAnywhere)      float VentSlideMin        =  0.f,
+									   VentSlideMax        =  500.f;
+
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
 	/// <summary>
 	/// Sets where the dome will point/twist to in degrees
 	/// </summary>
 	/// <param name="Degrees">Angular twist in degrees (float)</param>
-	UFUNCTION(BlueprintCallable) void SetDomeTwistTarget(float Degrees);
-
+	UFUNCTION(BlueprintCallable) void SetDomeTwistTarget(float Degrees, bool BroadcastFlag);
 	/// <summary>
 	/// Sets where the top shutter will point/twist to in degrees
 	/// </summary>
 	/// <param name="Degrees">Angular swing in degrees (float)</param>
-	UFUNCTION(BlueprintCallable) void SetTopShutterTarget(float Degrees);
+	UFUNCTION(BlueprintCallable) void SetTopShutterTarget(float Degrees, bool BroadcastFlag);
 	/// <summary>
 	/// Sets where the bottom shutter will point/twist to in degrees
 	/// </summary>
-	/// <param name="Degrees">Angular swing in degrees</param>
-	UFUNCTION(BlueprintCallable) void SetBotShutterTarget(float Degrees);
+	/// <param name="Degrees">Angular swing in degrees (float)</param>
+	UFUNCTION(BlueprintCallable) void SetBotShutterTarget(float Degrees, bool BroadcastFlag);
 	/// <summary>
 	/// Sets how far the vents will slide open in Unreal world units
 	/// </summary>
-	/// <param name="SlideAmount">Slide in world units. Range 0 - 500.0</param>
-	UFUNCTION(BlueprintCallable) void SetVentTarget(float SlideAmount);
+	/// <param name="SlideAmount">Slide in world units, Range 0 - 500.0 (float)</param>
+	UFUNCTION(BlueprintCallable) void SetVentTarget(float SlideAmount, bool BroadcastFlag);
+	/// <summary>
+	/// Sets all targets at once, clamping to the limits defined in MotionLimitSettings
+	/// </summary>
+	/// <param name="DomeTwist">Angular twist in degrees (float)</param>
+	/// <param name="TopSSwing">Angular swing in degrees (float)</param>
+	/// <param name="BotSSwing">Angular swing in degrees (float)</param>
+	/// <param name="VentSlide">Slide in world units, Range 0 - 500.0 (float)</param>
+	UFUNCTION(BlueprintCallable) void SetTargets(float DomeTwist, float TopSSwing, float BotSSwing, float VentSlide);
 
 	/// <summary>
 	/// Toggles bOpen, controls dome shutter and vents open/closed state

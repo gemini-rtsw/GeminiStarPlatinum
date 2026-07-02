@@ -235,18 +235,25 @@ void ULiveDataFeed::ApplyLine(const FString& Line)
 	if (UTelescopeModel* Tel = GetTelescope())
 	{
 		double Value;
-		if (Json->TryGetNumberField(TEXT("azim"), Value)) Tel->SetAzimTarget(static_cast<float>(Value));
-		if (Json->TryGetNumberField(TEXT("elev"), Value)) Tel->SetElevTarget(static_cast<float>(Value));
-		if (Json->TryGetNumberField(TEXT("cass"), Value)) Tel->SetCassTarget(static_cast<float>(Value));
+		if (Json->TryGetNumberField(TEXT("azim"), Value) && FMath::IsFinite(Value)) 
+			Tel->SetAzimTarget(static_cast<float>(Value));
+		if (Json->TryGetNumberField(TEXT("elev"), Value) && FMath::IsFinite(Value))
+			Tel->SetElevTarget(static_cast<float>(Value));
+		if (Json->TryGetNumberField(TEXT("cass"), Value) && FMath::IsFinite(Value))
+			Tel->SetCassTarget(static_cast<float>(Value));
 	}
 
 	if (UDomeModel* Dome = GetDome())
 	{
 		double Value;
-		if (Json->TryGetNumberField(TEXT("dome_twist"), Value)) Dome->SetDomeTwistTarget(static_cast<float>(Value));
-		if (Json->TryGetNumberField(TEXT("top_shutter"), Value)) Dome->SetTopShutterTarget(static_cast<float>(Value));
-		if (Json->TryGetNumberField(TEXT("bot_shutter"), Value)) Dome->SetBotShutterTarget(static_cast<float>(Value));
-		if (Json->TryGetNumberField(TEXT("vent"), Value)) Dome->SetVentTarget(static_cast<float>(Value));
+		if (Json->TryGetNumberField(TEXT("dome_twist"), Value)  && FMath::IsFinite(Value))
+			Dome->SetDomeTwistTarget(static_cast<float>(Value));
+		if (Json->TryGetNumberField(TEXT("top_shutter"), Value) && FMath::IsFinite(Value))
+			Dome->SetTopShutterTarget(static_cast<float>(Value));
+		if (Json->TryGetNumberField(TEXT("bot_shutter"), Value) && FMath::IsFinite(Value))
+			Dome->SetBotShutterTarget(static_cast<float>(Value));
+		if (Json->TryGetNumberField(TEXT("vent"), Value)        && FMath::IsFinite(Value))
+			Dome->SetVentTarget(static_cast<float>(Value));
 	}
 }
 

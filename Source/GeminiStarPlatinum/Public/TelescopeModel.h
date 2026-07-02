@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AssemblyModel.h"
+#include "MotionLimitSettings.h"
 #include "TelescopeModel.generated.h"
 
 /**
@@ -23,6 +24,9 @@ public:
 	/// </summary>
 	UPROPERTY(BlueprintReadOnly) bool  bLaserOn = false;
 
+	// Motion Limit Settings reference
+	UPROPERTY(BlueprintReadOnly) const UMotionLimitSettings* MotionLimitSettings;
+
 	// Rotational limits -- TODO: Use DataAsset to store these limits somewhere centralized
 	UPROPERTY(EditAnywhere)      float AzimTwistMin    = -180.f,
 								       AzimTwistMax    =  180.f;
@@ -30,6 +34,8 @@ public:
 								       ElevTwistMax    =  180.f;
 	UPROPERTY(EditAnywhere)      float CassTwistMin    = -180.f,
 								       CassTwistMax    =  180.f;
+
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
 	UFUNCTION(BlueprintCallable) void SetAzimTarget(float Degrees);
 	UFUNCTION(BlueprintCallable) void SetElevTarget(float Degrees);

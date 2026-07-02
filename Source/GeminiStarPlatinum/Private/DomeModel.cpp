@@ -3,45 +3,111 @@
 
 #include "DomeModel.h"
 
-void UDomeModel::SetDomeTwistTarget(float Degrees)
+void UDomeModel::Initialize(FSubsystemCollectionBase& Collection)
 {
-	DomeTwistTarget = FMath::Clamp(FMath::UnwindDegrees(Degrees), TwistMin, TwistMax);
-	OnStateChanged.Broadcast();
+	Super::Initialize(Collection);
+	// Load motion limit settings from the config file
+	MotionLimitSettings = GetDefault<UMotionLimitSettings>();
+    if (MotionLimitSettings)
+    {
+		DomeTwistMin       = MotionLimitSettings->DomeTwistMin;
+		DomeTwistMax       = MotionLimitSettings->DomeTwistMax;
+		TopShutterSwingMin = MotionLimitSettings->TopShutterSwingMin;
+		TopShutterSwingMax = MotionLimitSettings->TopShutterSwingMax;
+		BotShutterSwingMin = MotionLimitSettings->BotShutterSwingMin;
+		BotShutterSwingMax = MotionLimitSettings->BotShutterSwingMax;
+		VentSlideMin       = MotionLimitSettings->VentSlideMin;
+		VentSlideMax       = MotionLimitSettings->VentSlideMax;
+    }
 }
 
-void UDomeModel::SetTopShutterTarget(float Degrees)
+void UDomeModel::SetDomeTwistTarget(float Degrees, bool BroadcastFlag)
 {
-	TopSSwingTarget = Degrees;
+	auto temp = FMath::Clamp(
+        FMath::UnwindDegrees(Degrees), DomeTwistMin, DomeTwistMax);
+	if (temp == DomeTwistTarget) return; // No change, do nothing. Notably, prevents broadcasting regardless of bDirty state.
+	
+	DomeTwistTarget = temp;
+	bDirty = true;
+	
+	if (!BroadcastFlag) return;
+
 	OnStateChanged.Broadcast();
+	bDirty = false;                      // Reset dirty flag after broadcasting, since the change has been communicated.
 }
 
-void UDomeModel::SetBotShutterTarget(float Degrees)
+void UDomeModel::SetTopShutterTarget(float Degrees, bool BroadcastFlag)
 {
-	BotSSwingTarget = Degrees;
+	auto temp = FMath::Clamp(
+        FMath::UnwindDegrees(Degrees), TopShutterSwingMin, TopShutterSwingMax);
+	if (temp == TopSSwingTarget) return;
+	
+	TopSSwingTarget = temp;
+	bDirty = true;
+	
+	if (!BroadcastFlag) return;
+	
 	OnStateChanged.Broadcast();
+	bDirty = false;
 }
 
-void UDomeModel::SetVentTarget(float SlideAmount)
+void UDomeModel::SetBotShutterTarget(float Degrees, bool BroadcastFlag)
 {
-	VentSlideTarget = SlideAmount;
+	auto temp = FMath::Clamp(
+        FMath::UnwindDegrees(Degrees), BotShutterSwingMin, BotShutterSwingMax);
+	if (temp == BotSSwingTarget) return;
+	
+	BotSSwingTarget = temp;
+	bDirty = true;
+	
+	if (!BroadcastFlag) return;
+	
 	OnStateChanged.Broadcast();
+	bDirty = false;
+}
+
+void UDomeModel::SetVentTarget(float SlideAmount, bool BroadcastFlag)
+{
+	auto temp = FMath::Clamp(SlideAmount, VentSlideMin, VentSlideMax);
+	if (temp == VentSlideTarget) return;
+	
+	VentSlideTarget = temp;
+	bDirty = true;
+	
+	if (!BroadcastFlag)
+	
+	OnStateChanged.Broadcast();
+	bDirty = false;
+}
+
+void UDomeModel::SetTargets(float DomeTwist, float TopSSwing, float BotSSwing, float VentSlide)
+{
+	SetDomeTwistTarget(DomeTwist, false);
+	SetTopShutterTarget(TopSSwing, false);
+	SetBotShutterTarget(BotSSwing, false);
+	SetVentTarget(VentSlide, false);
+	if (!bDirty) return;
+	
+	OnStateChanged.Broadcast();
+	bDirty = false;
 }
 
 void UDomeModel::SetOpen(bool bNewOpen)
 {
+	if (bOpen == bNewOpen) return; // No change, do nothing
 	bOpen = bNewOpen;
     // Update targets based on whether the dome is open or closed
     if (bOpen)
     {
-        SetTopShutterTarget(83.f); // Yea the targets are calculated from Logan's numbers, but I don't remember how I got them or where the orignal numbers are
-        SetBotShutterTarget(-13.f);
-        SetVentTarget(500.f);
+        SetTopShutterTarget(83.f, false); // Yea the targets are calculated from Logan's numbers, but I don't remember how I got them or where the orignal numbers are
+        SetBotShutterTarget(-13.f, false);
+        SetVentTarget(500.f, false);
     }
     else
     {
-        SetTopShutterTarget(-7.f);
-        SetBotShutterTarget(-3.5f);
-        SetVentTarget(0.f);
+        SetTopShutterTarget(-7.f, false);
+        SetBotShutterTarget(-3.5f, false);
+        SetVentTarget(0.f, false);
     }
     OnStateChanged.Broadcast();
 }

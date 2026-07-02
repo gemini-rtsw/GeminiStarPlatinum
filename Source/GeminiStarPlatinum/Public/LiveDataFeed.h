@@ -14,11 +14,11 @@ class UDomeModel;
 
 UENUM(BlueprintType) enum class EFeedStatus : uint8
 {
-	Disconnected,   /*< Used when feed is not being used; manual, Disconnect() called, not trying */
-	Connecting,     /*<        First attempt: socket is connected but not returning data yet      */
-	Live,           /*<                 Feed is connected and bytes are arriving                  */
-	Reconnecting,   /*<   Lost established/attempted link; currently counting down to retry link  */
-	Failed,         /*<              Crossed attempt threshold; retrying in background            */
+	Disconnected,   ///< Used when feed is not being used; manual, Disconnect() called, not trying */
+	Connecting,     ///<        First attempt: socket is connected but not returning data yet      */
+	Live,           ///<                 Feed is connected and bytes are arriving                  */
+	Reconnecting,   ///<   Lost established/attempted link; currently counting down to retry link  */
+	Failed,         ///<              Crossed attempt threshold; retrying in background            */
 };
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnFeedStatusChangedNative, EFeedStatus);

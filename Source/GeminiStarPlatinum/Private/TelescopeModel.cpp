@@ -3,6 +3,22 @@
 
 #include "TelescopeModel.h"
 
+void UTelescopeModel::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+	// Load motion limit settings from the config file
+	MotionLimitSettings = GetDefault<UMotionLimitSettings>();
+	if (MotionLimitSettings)
+	{
+		AzimTwistMin = MotionLimitSettings->AzimTwistMin;
+		AzimTwistMax = MotionLimitSettings->AzimTwistMax;
+		ElevTwistMin = MotionLimitSettings->ElevTwistMin;
+		ElevTwistMax = MotionLimitSettings->ElevTwistMax;
+		CassTwistMin = MotionLimitSettings->CassTwistMin;
+		CassTwistMax = MotionLimitSettings->CassTwistMax;
+	}
+}
+
 void UTelescopeModel::SetAzimTarget(float Degrees)
 {
 	AzimTarget = FMath::Clamp(FMath::UnwindDegrees(Degrees), AzimTwistMin, AzimTwistMax);
