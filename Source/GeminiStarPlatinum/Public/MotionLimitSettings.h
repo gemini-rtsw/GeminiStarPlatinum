@@ -46,9 +46,9 @@ public:
 	float AzimTwistMax = 180.f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Telescope Motion Limit Settings")
-	float ElevTwistMin = 0.f;
+	float ElevTwistMin = -90.f;
 	UPROPERTY(Config, EditAnywhere, Category = "Telescope Motion Limit Settings")
-	float ElevTwistMax = 90.f;
+	float ElevTwistMax = 0.f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Telescope Motion Limit Settings")
 	float CassTwistMin = -179.9f;

@@ -25,7 +25,8 @@ void UDomeModel::SetDomeTwistTarget(float Degrees, bool BroadcastFlag)
 {
 	auto temp = FMath::Clamp(
         FMath::UnwindDegrees(Degrees), DomeTwistMin, DomeTwistMax);
-	if (temp == DomeTwistTarget) return; // No change, do nothing. Notably, prevents broadcasting regardless of bDirty state.
+	if (temp == DomeTwistTarget || !FMath::IsFinite(temp)) return; // No change, do nothing. 
+																   // Notably, prevents broadcasting regardless of bDirty.
 	
 	DomeTwistTarget = temp;
 	bDirty = true;
@@ -40,7 +41,7 @@ void UDomeModel::SetTopShutterTarget(float Degrees, bool BroadcastFlag)
 {
 	auto temp = FMath::Clamp(
         FMath::UnwindDegrees(Degrees), TopShutterSwingMin, TopShutterSwingMax);
-	if (temp == TopSSwingTarget) return;
+	if (temp == TopSSwingTarget || !FMath::IsFinite(temp)) return;
 	
 	TopSSwingTarget = temp;
 	bDirty = true;
@@ -55,7 +56,7 @@ void UDomeModel::SetBotShutterTarget(float Degrees, bool BroadcastFlag)
 {
 	auto temp = FMath::Clamp(
         FMath::UnwindDegrees(Degrees), BotShutterSwingMin, BotShutterSwingMax);
-	if (temp == BotSSwingTarget) return;
+	if (temp == BotSSwingTarget || !FMath::IsFinite(temp)) return;
 	
 	BotSSwingTarget = temp;
 	bDirty = true;
@@ -69,12 +70,12 @@ void UDomeModel::SetBotShutterTarget(float Degrees, bool BroadcastFlag)
 void UDomeModel::SetVentTarget(float SlideAmount, bool BroadcastFlag)
 {
 	auto temp = FMath::Clamp(SlideAmount, VentSlideMin, VentSlideMax);
-	if (temp == VentSlideTarget) return;
+	if (temp == VentSlideTarget || !FMath::IsFinite(temp)) return;
 	
 	VentSlideTarget = temp;
 	bDirty = true;
 	
-	if (!BroadcastFlag)
+	if (!BroadcastFlag) return;
 	
 	OnStateChanged.Broadcast();
 	bDirty = false;
@@ -82,6 +83,8 @@ void UDomeModel::SetVentTarget(float SlideAmount, bool BroadcastFlag)
 
 void UDomeModel::SetTargets(float DomeTwist, float TopSSwing, float BotSSwing, float VentSlide)
 {
+	// Set all targets at once, clamping to the limits defined in MotionLimitSettings
+	// Does not broadcast until all targets are set, and only broadcasts if any target changed
 	SetDomeTwistTarget(DomeTwist, false);
 	SetTopShutterTarget(TopSSwing, false);
 	SetBotShutterTarget(BotSSwing, false);

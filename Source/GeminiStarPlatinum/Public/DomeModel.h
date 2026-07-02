@@ -29,8 +29,7 @@ public:
 	/// Setters should handle this once individually; SetTargets() should handle this once for all targets.
 	/// DO NOT MIX AND MATCH BROADCAST FLAGS (i.e. having True for one target and False for another);
 	/// Early-returns in setters prevent broadcasting if target is unchanged regardless of bDirty state.
-	/// Therefore, if you want to broadcast, set all setters with BroadcastFlag = true; 
-	/// if you don't want to broadcast/want to handle broadcasting multiple targets, set all setters with BroadcastFlag = false.
+	/// INVARIANT: bDirty should always be false between operations, w/ setters clearing it and SetTargets() flushing it.
 	/// </summary>
 	UPROPERTY(BlueprintReadOnly) bool  bDirty          =  false;
 
@@ -38,7 +37,7 @@ public:
 	UPROPERTY(BlueprintReadOnly) const UMotionLimitSettings* MotionLimitSettings;
 
 	// Rotational limits, retrieved from MotionLimitSettings and kept here for less indirection.
-	UPROPERTY(EditAnywhere)      float DomeTwistMin        = -180.f, 
+	UPROPERTY(EditAnywhere)      float DomeTwistMin        = -179.9f, 
 		                               DomeTwistMax        =  180.f;
 	UPROPERTY(EditAnywhere)      float TopShutterSwingMin  = -7.f,
 									   TopShutterSwingMax  =  83.f;

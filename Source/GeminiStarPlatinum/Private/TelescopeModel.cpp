@@ -19,31 +19,58 @@ void UTelescopeModel::Initialize(FSubsystemCollectionBase& Collection)
 	}
 }
 
-void UTelescopeModel::SetAzimTarget(float Degrees)
+void UTelescopeModel::SetAzimTarget(float Degrees, bool BroadcastFlag)
 {
-	AzimTarget = FMath::Clamp(FMath::UnwindDegrees(Degrees), AzimTwistMin, AzimTwistMax);
+	auto temp = FMath::Clamp(FMath::UnwindDegrees(Degrees), AzimTwistMin, AzimTwistMax);
+	if (temp == AzimTarget || !FMath::IsFinite(temp)) return; // No change, do nothing. 
+	                                // Notably, prevents broadcasting regardless of bDirty state.
+
+	AzimTarget = temp;
+	bDirty = true;
+
+	if (!BroadcastFlag) return;
+
 	OnStateChanged.Broadcast();
+	bDirty = false;                      // Reset dirty flag after broadcasting, since the change has been communicated.
 }
 
-void UTelescopeModel::SetElevTarget(float Degrees)
+void UTelescopeModel::SetElevTarget(float Degrees, bool BroadcastFlag)
 {
-	ElevTarget = FMath::Clamp(FMath::UnwindDegrees(Degrees), ElevTwistMin, ElevTwistMax);
+	auto temp = FMath::Clamp(FMath::UnwindDegrees(Degrees), ElevTwistMin, ElevTwistMax);
+	if (temp == ElevTarget || !FMath::IsFinite(temp)) return;
+
+	ElevTarget = temp;
+	bDirty = true;
+
+	if (!BroadcastFlag) return;
+
 	OnStateChanged.Broadcast();
+	bDirty = false;                      
 }
 
-void UTelescopeModel::SetCassTarget(float Degrees)
+void UTelescopeModel::SetCassTarget(float Degrees, bool BroadcastFlag)
 {
-	CassTarget = FMath::Clamp(FMath::UnwindDegrees(Degrees), CassTwistMin, CassTwistMax);
+	auto temp = FMath::Clamp(FMath::UnwindDegrees(Degrees), CassTwistMin, CassTwistMax);
+	if (temp == CassTarget || !FMath::IsFinite(temp)) return;
+
+	CassTarget = temp;
+	bDirty = true;
+
+	if (!BroadcastFlag) return;
+
 	OnStateChanged.Broadcast();
+	bDirty = false;
 }
 
-// TODO: See if this is actually necessary, because this just seems rough
-//       Also triple broadcast might do some things
-void UTelescopeModel::SetTarget(float Azim, float Elev, float Cass)
+void UTelescopeModel::SetTargets(float Azim, float Elev, float Cass)
 {
-	SetAzimTarget(Azim);
-	SetElevTarget(Elev);
-	SetCassTarget(Cass);
+	SetAzimTarget(Azim, false);
+	SetElevTarget(Elev, false);
+	SetCassTarget(Cass, false);
+	if (!bDirty) return;
+
+	OnStateChanged.Broadcast();
+	bDirty = false;
 }
 
 void UTelescopeModel::ToggleLaser(bool bLaserState)
