@@ -55,11 +55,22 @@ def main() -> None:
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind((args.host, args.port))
         server.listen(1)
+        server.settimeout(1.0)
         print(f"[feed_bridge] {args.source} source listening on {args.host}:{args.port} "
               f"at {args.rate} Hz")
 
         while True:
-            conn, addr = server.accept()
+            try:
+                conn, addr = server.accept()
+            except socket.timeout:
+                # Lets the loop return to the bytecode-eval loop periodically so a
+                # pending Ctrl+C is actually delivered while idle (Windows won't
+                # interrupt a blocking accept() otherwise).
+                continue
+            except KeyboardInterrupt:
+                print("\n[feed_bridge] shutting down")
+                break
+
             print(f"[feed_bridge] client connected: {addr}")
             try:
                 with conn:

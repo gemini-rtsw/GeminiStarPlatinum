@@ -85,6 +85,10 @@ private:
 	/** Parses one JSON line and pushes it to the models. Tolerant of missing/extra keys. */
 	void ApplyLine(const FString& Line);
 
+	/// <summary>
+	/// Gets a pointer to the game instance's telescope model subsystem. Returns nullptr if not initialized.
+	/// </summary>
+	/// <returns>UTelescopeModel pointer; game instance</returns>
 	UTelescopeModel* GetTelescope();
 	UDomeModel* GetDome();
 
