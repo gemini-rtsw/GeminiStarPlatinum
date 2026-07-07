@@ -11,7 +11,7 @@ Severity legend: 🔴 fix before relying on the live path · 🟡 should fix · 
 
 ## 1. Correctness & robustness
 
-### 🔴 1.1 Wire values reach physics targets unvalidated (NaN/Inf/out-of-range)
+### 🔴 1.1 Wire values reach physics targets unvalidated (NaN/Inf/out-of-range) [FINISHED]
 `ULiveDataFeed::ApplyLine` (`LiveDataFeed.cpp:225-251`) casts each JSON number to `float` and calls the setters directly. The telescope setters clamp (`TelescopeModel.cpp:6-22`), but `FMath::Clamp` of a NaN returns NaN, so a NaN on the wire lands in `AzimTarget` and then in the constraint drives. Worse, three of four dome setters have **no clamping at all** — `SetTopShutterTarget` / `SetBotShutterTarget` / `SetVentTarget` (`DomeModel.cpp:12-28`) assign raw values. A single malformed-but-parseable sample (`{"vent": 1e18}`) goes straight into physics constraint targets, and per CLAUDE.md the physics tuning is deliberately fragile. Given the eventual source is a live network feed, treat the wire as untrusted:
 
 - In `ApplyLine`, reject non-finite values (`FMath::IsFinite`).
@@ -53,7 +53,7 @@ If a peer sends bytes with no `\n` (garbled stream, wrong service on the port), 
 
 ## 2. Performance
 
-### 🟡 2.1 Up to 7 `OnStateChanged` broadcasts per sample, 20× per second
+### 🟡 2.1 Up to 7 `OnStateChanged` broadcasts per sample, 20× per second [FINISHED]
 Each model setter broadcasts individually (`TelescopeModel.cpp:6-22`, `DomeModel.cpp:6-28`), so one JSON line triggers up to 7 delegate broadcasts — at 20 Hz, ~140 broadcasts/s to every listener, each presumably refreshing UI readouts. `UTelescopeModel::SetTarget` even carries a TODO about the triple broadcast (`TelescopeModel.cpp:24-25`). Options, in increasing order of effort:
 
 1. Batch in the feed: give each model a `SetTargets(...)` /begin-end-update scope so one line → one broadcast per model.
@@ -99,7 +99,7 @@ Also note `pv_map.py` mixes two concepts: `vent_west`/`vent_east` are *PV inputs
 ### 🟡 3.4 `__pycache__/*.pyc` files are committed
 `git ls-files` shows `tools/feed_bridge/__pycache__/*.cpython-314.pyc` tracked. `TestIOC/` has a `.gitignore`; `tools/` does not. Add `__pycache__/` to a root or `tools/` `.gitignore` and `git rm --cached` the three files.
 
-### 🔵 3.5 Doxygen comment syntax in `LiveDataFeed.h` won't parse
+### 🔵 3.5 Doxygen comment syntax in `LiveDataFeed.h` won't parse [FINISHED]
 The `EFeedStatus` member comments use `/*<` (`LiveDataFeed.h:17-21`); Doxygen's trailing-comment markers are `/**<` or `///<`, so these are invisible to doc generation — which CLAUDE.md says is the point of the comment style. Same file also mixes `///<summary>` XML style and plain `/** */`; harmless, but worth normalizing while touching the file.
 
 ### 🔵 3.6 Small paper cuts

@@ -27,7 +27,12 @@ class GEMINISTARPLATINUM_API UEnvironmentModel : public UAssemblyModel
 	GENERATED_BODY()
 	
 public:
+	/// <summary>
+	/// Current time of the observatory, intialized to 2020-01-01 00:00:01 as a placeholder.
+	/// Assume same time zone, long/lat as observatory (no DST because Hawaii!). GMT -10 (HST), 19.82N, 155.47W
+	/// </summary>
 	UPROPERTY(BlueprintReadOnly) FDateTime CurrentTime = FDateTime(2020, 1, 1, 0, 0, 1, 0);
+	UPROPERTY(BlueprintReadOnly) bool bTimeProgresses = false;
 
 	UFUNCTION(BlueprintCallable) ETimeVerificationError SetCurrentTime(int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second);
 };

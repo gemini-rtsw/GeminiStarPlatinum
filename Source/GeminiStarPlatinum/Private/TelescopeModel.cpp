@@ -23,7 +23,7 @@ void UTelescopeModel::SetAzimTarget(float Degrees, bool BroadcastFlag)
 {
 	auto temp = FMath::Clamp(FMath::UnwindDegrees(Degrees), AzimTwistMin, AzimTwistMax);
 	if (temp == AzimTarget || !FMath::IsFinite(temp)) return; // No change, do nothing. 
-	                                // Notably, prevents broadcasting regardless of bDirty state.
+	                                                          // Notably, prevents broadcasting regardless of bDirty state.
 
 	AzimTarget = temp;
 	bDirty = true;
