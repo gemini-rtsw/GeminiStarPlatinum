@@ -36,8 +36,8 @@ class GeminiTestIOC(PVGroup):
     west_vent = pvproperty(value=0.0, name="ec:westVentGatePos", precision=2, units="%")
 
     # Mount controller (mc) ---------------------------------------------------
-    el_pos = pvproperty(value=45.0, name="mc:elCurrentPos", precision=4, units="deg")
-    az_pos = pvproperty(value=180.0, name="mc:azCurrentPos", precision=4, units="deg")
+    el_pos = pvproperty(value=45.0, name="tcs:currentEl", precision=4, units="deg")
+    az_pos = pvproperty(value=180.0, name="tcs:currentAz", precision=4, units="deg")
 
     # Cassegrain rotator (cr) -------------------------------------------------
     cr_pos = pvproperty(value=0.0, name="cr:crCurrentPos", precision=4, units="deg")

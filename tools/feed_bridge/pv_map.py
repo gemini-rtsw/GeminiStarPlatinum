@@ -6,8 +6,8 @@ The names below are reflective of the actual Gemini EPICS PV keys
 """
 
 DEFAULT_PV_MAP = {
-    "azim"           : "mc:azCurrentPos",
-    "elev"           : "mc:elCurrentPos",
+    "azim"           : "tcs:currentAz",
+    "elev"           : "tcs:currentEl",
     "cass"           : "cr:crCurrentPos",
     "dome_twist"     : "ec:domePos",
     "top_shutter"    : "ec:topShtrPos",

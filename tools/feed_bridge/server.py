@@ -21,6 +21,7 @@ import json
 import logging
 import socket
 import time
+import os
 
 from data_source import DataSource, MockSource, EpicsSource, PAYLOAD_KEYS
 
@@ -71,7 +72,12 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=9100)
     parser.add_argument("--rate", type=float, default=20.0, help="samples per second")
+    parser.add_argument("--ca_addr", default=None, help="EPICS_CA_ADDR for epics source")
     args = parser.parse_args()
+
+    if args.ca_addr:
+        os.environ["EPICS_CA_ADDR_LIST"] = args.ca_addr
+        os.environ["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
 
     source = build_source(args)
 
