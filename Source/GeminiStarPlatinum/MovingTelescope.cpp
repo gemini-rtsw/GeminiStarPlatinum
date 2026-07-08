@@ -242,10 +242,18 @@ float AMovingTelescope::GetAzimTwist()
     return AzimTwistState.Continuous;
 }
 
+/// <summary>
+/// Physically based calculation of the elevation's rotation at a given moment.
+/// </summary>
+/// <returns>Elevation angle in degrees</returns>
 float AMovingTelescope::GetElevSwing()
 {
-	return -(ElevConstraint->GetCurrentSwing2() - ElevAngularOffset) + 3.f; // TODO: 3.f is a fudge factor to make the swing match the actual elevation angle
-                                                                            //       Check what makes this happen.
+    const float CalibrationOffset = -3.f; // Measured from in-viz observation, slightly off
+    const FVector FwdWorld = Elev->GetForwardVector();
+    const FVector FwdInAzim = Azim->GetComponentTransform().InverseTransformVectorNoScale(FwdWorld); // Get elevation angular offset in terms
+                                                                                                     // azim transform/frame of reference
+    const float ElevDeg = FMath::RadiansToDegrees(FMath::Atan2(FwdInAzim.Z, FwdInAzim.X)) + CalibrationOffset;
+    return ElevDeg;
 }
 
 float AMovingTelescope::GetCassTwist()

@@ -57,7 +57,7 @@ class GeminiTestIOC(PVGroup):
             await self.top_shtr_pos.write(50.0 + 50.0 * math.sin(t * 0.2))
             await self.bot_shtr_pos.write(50.0 + 50.0 * math.sin(t * 0.2 + 0.5))
             await self.az_pos.write((180.0 + t * 2.0) % 360.0)
-            await self.el_pos.write(45.0 + 20.0 * math.sin(t * 0.1))
+            await self.el_pos.write(-45.0 - 20.0 * math.sin(t * 0.1))
             await self.cr_pos.write((t * 3.0) % 360.0)
             t += 1.0
             await async_lib.library.sleep(1.0)
