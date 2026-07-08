@@ -8,6 +8,8 @@ Usage:
 Wire format: one JSON object per line, terminated by '\n'. The Unreal ULiveDataFeed
 connects as a client, drains the socket each tick, and applies each complete line.
 
+BRIDGE-STAMPED: t, age, stale; indicate the data quality of payload in terms of time. 
+
 This is a prototype: it serves one client at a time and re-accepts when that client
 disconnects (e.g. when the sim toggles Manual -> Live again).
 """
@@ -16,10 +18,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import socket
 import time
 
-from data_source import DataSource, MockSource, EpicsSource
+from data_source import DataSource, MockSource, EpicsSource, PAYLOAD_KEYS
+
+STALE_AFTER_S = 2.0
 
 
 def build_source(args: argparse.Namespace) -> DataSource:
@@ -32,9 +37,28 @@ def build_source(args: argparse.Namespace) -> DataSource:
 
 
 def serve_client(conn: socket.socket, source: DataSource, rate: float) -> None:
+    conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     period = 1.0 / rate if rate > 0 else 0.0
+    last_value = {}
+    last_update = {}
     while True:
-        payload = source.read()
+        mono = time.monotonic()
+        try:
+            fresh = source.read()
+        except Exception as e:
+            logging.warning("source.read() failed, carrying forward: %s", e)
+            fresh = {}
+        for k, v in fresh.items():
+            last_value[k] = v
+            last_update[k] = mono
+        if not last_value:
+            time.sleep(period or 0.1)
+            continue
+        payload = dict(last_value)
+        payload["t"] = time.time()
+        oldest = min(last_update.get(k,mono) for k in last_value)
+        payload["age"] = round(mono - oldest, 3)
+        payload["stale"] = payload["age"] > STALE_AFTER_S
         line = json.dumps(payload) + "\n"
         conn.sendall(line.encode("utf-8"))
         if period:

@@ -18,9 +18,9 @@ public:
 	UMotionLimitSettings(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(Config, EditAnywhere, Category="Dome Motion Limit Settings")
-	float DomeTwistMin = -179.9f;
+	float DomeTwistMin = -270.f;
 	UPROPERTY(Config, EditAnywhere, Category = "Dome Motion Limit Settings")
-	float DomeTwistMax = 180.f;
+	float DomeTwistMax = 270.f;
 
 	// The following three properties were determined from Logan's numbers. Not sure where they came from but trust.
 	UPROPERTY(Config, EditAnywhere, Category = "Dome Motion Limit Settings")
@@ -41,9 +41,9 @@ public:
 
 
 	UPROPERTY(Config, EditAnywhere, Category = "Telescope Motion Limit Settings")
-	float AzimTwistMin = -179.9f;
+	float AzimTwistMin = -180.f;
 	UPROPERTY(Config, EditAnywhere, Category = "Telescope Motion Limit Settings")
-	float AzimTwistMax = 180.f;
+	float AzimTwistMax = 360.f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Telescope Motion Limit Settings")
 	float ElevTwistMin = -90.f;

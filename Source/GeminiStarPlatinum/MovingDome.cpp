@@ -209,7 +209,7 @@ void AMovingDome::Tick(float DeltaTime)
     if (!Model) Model = GetGameInstance()->GetSubsystem<UDomeModel>();
 
 	// Update motion of components
-    TwistComponent(DomeConstraint, Model->DomeTwistTarget, DomeTwistStrength, DomeVelocityTarget, DomeVelocityDamping, DomeAngularThreshold);
+    TwistComponent(DomeConstraint, DomeTwistState, Model->DomeTwistTarget, DomeTwistStrength, DomeVelocityTarget, DomeVelocityDamping, DomeAngularThreshold);
     SwingComponent(TopSConstraint, Model->TopSSwingTarget, TopSSwingStrength, TopSVelocityTarget, TopSVelocityDamping, TopSAngularThreshold, TopSAngularOffset);
     SwingComponent(BotSConstraint, Model->BotSSwingTarget, BotSSwingStrength, BotSVelocityTarget, BotSVelocityDamping, BotSAngularThreshold, BotSAngularOffset);
     SlideComponents();
@@ -287,5 +287,6 @@ void AMovingDome::SlideComponents() {
 }
 
 float AMovingDome::GetDomeTwist() {
-    return DomeConstraint->GetCurrentTwist();
+    // Multi-turn angle so readouts match the model's extended [-270, 270] deg range
+    return DomeTwistState.Continuous;
 }

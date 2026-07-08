@@ -26,6 +26,16 @@ void ULiveDataFeed::SetStatus(EFeedStatus NewStatus)
 	}
 }
 
+void ULiveDataFeed::SetDataQuality(bool bNewStale, float NewAge)
+{
+	DataAgeSeconds = NewAge;
+	if (bDataStale != bNewStale)
+	{
+		bDataStale = bNewStale;
+		OnDataQualityChanged.Broadcast(bDataStale, DataAgeSeconds);
+	}
+}
+
 void ULiveDataFeed::Initialize(UGameInstance* InGameInstance)
 {
 	GameInstance = InGameInstance;
@@ -50,6 +60,12 @@ void ULiveDataFeed::Disconnect()
 		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
 		Socket = nullptr;
 	}
+
+	// Reset data quality for when fresh connection is made, ensure no leftover stale flag
+	TimeSinceLastSample = 0.f;
+	bBridgeReportedStale = false;
+	SetDataQuality(false, 0.f);
+
 	SetStatus(EFeedStatus::Disconnected);
 }
 
@@ -115,6 +131,13 @@ void ULiveDataFeed::Tick(float DeltaTime)
 	}
 
 	PollSocket();
+
+	if (bEstablished)
+	{
+		TimeSinceLastSample += DeltaTime;
+		const bool bStale = bBridgeReportedStale || TimeSinceLastSample >= LocalStaleTimeout;
+		SetDataQuality(bStale, FMath::Max(BridgeReportedAge, TimeSinceLastSample));
+	}
 
 	// Bound the time spent waiting for a connection to deliver its first byte. A
 	// non-blocking connect to an absent peer never reports failure through recv(), so
@@ -219,6 +242,12 @@ void ULiveDataFeed::HandleDisconnect()
 	RxBuffer.Empty();
 	TimeUntilReconnect = ReconnectInterval;
 	ReconnectAttempts++;
+
+	// Reset data quality for when fresh connection is made, ensure no leftover stale flag
+	TimeSinceLastSample = 0.f;
+	bBridgeReportedStale = false;
+	SetDataQuality(false, 0.f);
+
 	SetStatus(ReconnectAttempts >= MaxReconnectAttempts ? EFeedStatus::Failed : EFeedStatus::Reconnecting);
 }
 
@@ -264,6 +293,14 @@ void ULiveDataFeed::ApplyLine(const FString& Line)
 			Vent = Value;
 		Dome->SetTargets(DomeTwist, TopShutter, BotShutter, Vent);
 	}
+
+	double AgeVal = 0.0;
+	if (Json->TryGetNumberField(TEXT("age"), AgeVal) && FMath::IsFinite(AgeVal))
+		BridgeReportedAge = static_cast<float>(AgeVal);
+	bool bStaleVal = false;
+	if (Json->TryGetBoolField(TEXT("stale"), bStaleVal))
+		bBridgeReportedStale = bStaleVal;
+	TimeSinceLastSample = 0.f;
 }
 
 UTelescopeModel* ULiveDataFeed::GetTelescope()

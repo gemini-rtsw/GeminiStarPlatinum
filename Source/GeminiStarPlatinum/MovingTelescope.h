@@ -136,6 +136,11 @@ protected:
     // UPROPERTY(VisibleAnywhere)
     // UBillboardComponent* PivotPoint;
 
+    // Multi-turn azimuth twist tracker; supports the extended [-180, 360] deg wrap range
+    FContinuousTwist AzimTwistState;
+    // Multi-turn cassegrain twist tracker; range stays within [-180, 180] deg
+    FContinuousTwist CassTwistState;
+
     // Display COM dot each frame
     void DisplayCenterOfMass();
 };

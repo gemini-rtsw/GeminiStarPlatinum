@@ -12,6 +12,9 @@ side (ULiveDataFeed::ApplyLine):
         "top_shutter" : float,   # top shutter swing, degrees
         "bot_shutter" : float,   # bottom shutter swing, degrees
         "vent"        : float,   # west AND east vent slide, Unreal position offset
+        "t"           : float,   # wall-clock time of payload, seconds since epoch
+        "age"         : float,   # seconds since the oldest value in this payload was last updated
+        "stale"       : bool,    # True if age > STALE_AFTER_S, False otherwise
     }
 
 Add a new source by subclassing DataSource and implementing read(). Selection
@@ -86,7 +89,7 @@ class EpicsSource(DataSource):
     def read(self) -> dict:
         raw: dict = {}
         for key, pv in self._pvs.items():
-            value = pv.get()
+            value = pv.get(timeout=0.2) if pv.connected else None
             if value is not None:
                 raw[key] = float(value)
 

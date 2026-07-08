@@ -200,9 +200,9 @@ void AMovingTelescope::Tick(float DeltaTime)
     DrawDebugString(GetWorld(), CassConstraint->GetComponentLocation() + FVector(0.f, 0.f, -400.f), ElevAngForce.ToString(), nullptr, FColor::Red, 0.f, true, 1.4f);
 
     // Update motion of components
-    TwistComponent(AzimConstraint, Model->AzimTarget, AzimTwistStrength, AzimVelocityTarget, AzimVelocityDamping, AzimAngularThreshold);
+    TwistComponent(AzimConstraint, AzimTwistState, Model->AzimTarget, AzimTwistStrength, AzimVelocityTarget, AzimVelocityDamping, AzimAngularThreshold);
     SwingComponent(ElevConstraint, Model->ElevTarget, ElevSwingStrength, ElevVelocityTarget, ElevVelocityDamping, ElevAngularThreshold, ElevAngularOffset);
-    TwistComponent(CassConstraint, Model->CassTarget, CassTwistStrength, CassVelocityTarget, CassVelocityDamping, CassAngularThreshold);
+    TwistComponent(CassConstraint, CassTwistState, Model->CassTarget, CassTwistStrength, CassVelocityTarget, CassVelocityDamping, CassAngularThreshold);
 }
 
 // TODO: Clean this up, numbers were chosen out of a hat
@@ -238,7 +238,8 @@ void AMovingTelescope::DisplayCenterOfMass()
 
 float AMovingTelescope::GetAzimTwist()
 {
-    return AzimConstraint->GetCurrentTwist();
+    // Multi-turn angle so readouts match the model's extended [-180, 360] deg range
+    return AzimTwistState.Continuous;
 }
 
 float AMovingTelescope::GetElevSwing()

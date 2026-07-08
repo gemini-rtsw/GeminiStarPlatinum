@@ -155,6 +155,9 @@ protected:
     UPROPERTY(VisibleAnywhere)
     UPhysicsConstraintComponent* FluxCapacitorConstraint;
 
+    // Multi-turn dome twist tracker; supports the extended [-270, 270] deg wrap range
+    FContinuousTwist DomeTwistState;
+
     // Determine constraint linear drive on a single component/constraint each frame
     void SlideComponent(UPhysicsConstraintComponent* Constraint, UPrimitiveComponent* Child,
         float RestOffset, float SlideTarget);

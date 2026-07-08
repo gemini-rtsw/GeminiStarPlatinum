@@ -22,11 +22,12 @@ UENUM(BlueprintType) enum class EFeedStatus : uint8
 };
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnFeedStatusChangedNative, EFeedStatus);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnFeedDataQualityChanged, bool /*bStale*/, float /*AgeSeconds*/);
 
 /**
  * Prototype live data feed. Connects (as a TCP client) to an external Python bridge
  * that streams newline-delimited JSON positional samples, e.g.
- *   {"azim":180.0,"elev":-60.0,"cass":120.0,"dome_twist":0.0,"top_shutter":45.0,"bot_shutter":-7.5,"vent":300.0}\n
+ *   {"azim":180.0,"elev":-60.0,"cass":120.0,"dome_twist":0.0,"top_shutter":45.0,"bot_shutter":-7.5,"vent":300.0,"t":236839983.123442,"age":1.498634,"stale":false }\n
  * Each sample is parsed and pushed into UTelescopeModel / UDomeModel via their setters.
  *
  * This object is the ONLY place that knows about sockets/JSON; swapping the transport
@@ -58,6 +59,9 @@ public:
 	float GetTimeUntilReconnect();
 	int32 GetReconnectAttempts();
 
+	bool IsDataStale() const { return bDataStale; }
+	float GetDataAgeSeconds() const { return DataAgeSeconds; }
+
 	// Connection target. Defaults match the prototype Python bridge (tools/feed_bridge).
 	UPROPERTY(EditAnywhere, Category = "LiveFeed") FString Host = TEXT("127.0.0.1");
 	UPROPERTY(EditAnywhere, Category = "LiveFeed") int32 Port = 9100;
@@ -73,7 +77,13 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, Category = "LiveFeed") float ConnectTimeout = 2.f;
 
+	/// <summary>
+	/// If line has not been applied for this long, treat data as stale regardless of bridge-reported age.
+	/// </summary>
+	UPROPERTY(EditAnywhere, Category = "LiveFeed") float LocalStaleTimeout = 2.f;
+
 	FOnFeedStatusChangedNative OnStatusChanged;
+	FOnFeedDataQualityChanged  OnDataQualityChanged;
 
 private:
 	/** Tries to (re)open the socket. Returns true on success. */
@@ -90,7 +100,7 @@ private:
 	/// </summary>
 	/// <returns>UTelescopeModel pointer; game instance</returns>
 	UTelescopeModel* GetTelescope();
-	UDomeModel* GetDome();
+	UDomeModel*      GetDome();
 
 
 	/// <summary>
@@ -98,12 +108,18 @@ private:
 	/// </summary>
 	/// <param name="NewStatus">New connection status (EFeedStatus)</param>
 	void SetStatus(EFeedStatus NewStatus);
+	/// <summary>
+	/// Sets current data quality according to the newest payload.
+	/// Early exits if unchanged, assigns + broadcasts OnDataQualityChanged otherwise.
+	/// </summary>
+	/// <param name="bNewStale">Describes current stale-ness of data (aka if data last updated >2s ago) (bool)</param>
+	/// <param name="NewAgeSeconds">Age of newest data in seconds (float)</param>
+	void SetDataQuality(bool bNewStale, float NewAgeSeconds);
 
-
-	UPROPERTY() UGameInstance* GameInstance = nullptr;
+	UPROPERTY() UGameInstance*   GameInstance   = nullptr;
 	UPROPERTY() UTelescopeModel* TelescopeModel = nullptr;
-	UPROPERTY() UDomeModel* DomeModel = nullptr;
-
+	UPROPERTY() UDomeModel*      DomeModel      = nullptr;
+	
 	FSocket* Socket = nullptr;
 
 	/** True while the feed should be live (set by Connect, cleared by Disconnect). */
@@ -126,4 +142,10 @@ private:
 
 	/** Counts how many times we've tried to reconnect since the last successful connection. */
 	int32 ReconnectAttempts = 0;
+
+	float BridgeReportedAge    = 0.f;
+	bool  bBridgeReportedStale = false;
+	float TimeSinceLastSample  = 0.f;
+	float DataAgeSeconds       = 0.f;
+	bool  bDataStale           = false;
 };

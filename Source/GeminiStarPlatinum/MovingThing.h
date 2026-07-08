@@ -6,6 +6,18 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "MovingThing.generated.h"
 
+/// <summary>
+/// Tracks a multi-turn (unbounded) twist angle across the +/-180deg wrap of GetCurrentTwist().
+/// One instance per twist constraint, updated every tick by TwistComponent(); valid while
+/// per-tick rotation stays well below 180deg (true for all drive velocities in this project).
+/// </summary>
+struct FContinuousTwist
+{
+    float Continuous = 0.f;   ///< Accumulated twist in degrees, unbounded (e.g. 270, -250)
+    float LastRaw    = 0.f;   ///< Previous raw GetCurrentTwist() sample [-180, 180] deg
+    bool  bInit      = false; ///< First-sample latch; seeds Continuous from the raw reading
+};
+
 UCLASS()
 class GEMINISTARPLATINUM_API AMovingThing : public AActor
 {
@@ -51,6 +63,7 @@ public:
     // Determine constraint twist drive each frame
     void TwistComponent(
         UPhysicsConstraintComponent* Constraint,
+        FContinuousTwist& TwistState,
         float TwistTarget,
         float TwistStrength,
         float VelocityTarget,

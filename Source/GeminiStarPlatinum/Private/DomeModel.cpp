@@ -21,10 +21,35 @@ void UDomeModel::Initialize(FSubsystemCollectionBase& Collection)
     }
 }
 
+/// <summary>
+/// Maps an arbitrary angle into the dome cable-wrap range [-270, 270] deg.
+/// In-range values (limits inclusive) pass through untouched — the extended span exceeds 360deg,
+/// so out-of-range inputs are inherently ambiguous (e.g. 280 could mean 280 - 360 = -80 or an
+/// invalid overtravel) and are only canonicalized: values <= -270 map into (-270, 90], values
+/// >= 270 map into [-90, 270).
+/// </summary>
+/// <param name="NewRotation">Angle in degrees, any value</param>
+/// <returns>Equivalent angle within [-270, 270] deg</returns>
+float UDomeModel::UnwrapGeminiDomeRot(float NewRotation)
+{
+	if (NewRotation >= -270.f && NewRotation <= 270.f)
+	{
+		return NewRotation;
+	}
+	else if (NewRotation <= -270.f)
+	{
+		return FMath::Fmod(360.f + FMath::Fmod(NewRotation + 270.f, 360.f), 360.f) - 270.f;
+	}
+	else
+	{
+		return FMath::Fmod(360.f + FMath::Fmod(NewRotation + 90.f, 360.f), 360.f) - 90.f;
+	}
+}
+
 void UDomeModel::SetDomeTwistTarget(float Degrees, bool BroadcastFlag)
 {
 	auto temp = FMath::Clamp(
-        FMath::UnwindDegrees(Degrees), DomeTwistMin, DomeTwistMax);
+        UnwrapGeminiDomeRot(Degrees), DomeTwistMin, DomeTwistMax);
 	if (temp == DomeTwistTarget || !FMath::IsFinite(temp)) return; // No change, do nothing. 
 																   // Notably, prevents broadcasting regardless of bDirty.
 	

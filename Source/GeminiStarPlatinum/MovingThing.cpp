@@ -122,21 +122,37 @@ UPhysicsConstraintComponent* AMovingThing::CreateConstraintComponent(
 /// Handles Twisting motion of a component in a constraint
 /// </summary>
 /// <param name="Constraint">Unreal physics constraint</param>
-/// <param name="TwistTarget">Angle in degrees that component will twist to</param>
+/// <param name="TwistState">Multi-turn twist tracker for this constraint, updated here each tick</param>
+/// <param name="TwistTarget">Absolute angle in degrees that component will twist to; may exceed +/-180deg
+/// (extended cable-wrap range), already range-mapped and clamped by the model</param>
 /// <param name="TwistStrength">Strength of twisting motion</param>
 /// <param name="VelocityTarget">Target velocity when component is twisting to target</param>
 /// <param name="VelocityDamping">Strength of velocity damping or control</param>
 /// <param name="AngularThreshold">Margin of error when rotating before snapping</param>
 void AMovingThing::TwistComponent(
     UPhysicsConstraintComponent* Constraint,
+    FContinuousTwist& TwistState,
     float TwistTarget,
     float TwistStrength,
     float VelocityTarget,
     float VelocityDamping,
     float AngularThreshold
 ) {
-    float RelativeTwist = FMath::UnwindDegrees(TwistTarget) - Constraint->GetCurrentTwist(); // Twist target is locked to [-180deg, 180deg] range before processing
-                                                                                             // Leads to nonoptimal motions, but may reflect actual telescope rotational limits better
+    // Accumulate the raw [-180, 180] twist reading into an unbounded angle so targets past
+    // +/-180deg remain distinguishable (e.g. +270 vs -90). Assumes < 180deg motion per tick.
+    const float RawTwist = Constraint->GetCurrentTwist();
+    if (!TwistState.bInit)
+    {
+        TwistState.Continuous = RawTwist;
+        TwistState.LastRaw = RawTwist;
+        TwistState.bInit = true;
+    }
+    TwistState.Continuous += FMath::UnwindDegrees(RawTwist - TwistState.LastRaw);
+    TwistState.LastRaw = RawTwist;
+
+    // Error in extended space; sign drives travel direction through the +/-180deg crossing,
+    // mimicking real cable-wrap motion instead of always taking the short way around
+    float RelativeTwist = TwistTarget - TwistState.Continuous;
 
 	if (FMath::Abs(RelativeTwist) > AngularThreshold) // If the twist is outside the threshold, apply velocity
     {
@@ -145,7 +161,9 @@ void AMovingThing::TwistComponent(
     }
 	else // If the twist is within the threshold, set the orientation and strength (almost like a "snap" to the target)
     {
-        Constraint->SetAngularOrientationTarget(FRotator(0.f, 0.f, -TwistTarget));
+        // The orientation drive lives in the constraint's wrapped [-180, 180] space, so re-wrap the
+        // target; within AngularThreshold the wrapped target is equivalent to the extended one
+        Constraint->SetAngularOrientationTarget(FRotator(0.f, 0.f, -FMath::UnwindDegrees(TwistTarget)));
         Constraint->SetAngularVelocityTarget(FVector::ZeroVector);
         Constraint->SetAngularDriveParams(TwistStrength, VelocityDamping, 0.f);
     }

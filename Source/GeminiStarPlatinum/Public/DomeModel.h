@@ -37,8 +37,8 @@ public:
 	UPROPERTY(BlueprintReadOnly) const UMotionLimitSettings* MotionLimitSettings;
 
 	// Rotational limits, retrieved from MotionLimitSettings and kept here for less indirection.
-	UPROPERTY(EditAnywhere)      float DomeTwistMin        = -179.9f, 
-		                               DomeTwistMax        =  180.f;
+	UPROPERTY(EditAnywhere)      float DomeTwistMin        = -270.f,
+		                               DomeTwistMax        =  270.f;
 	UPROPERTY(EditAnywhere)      float TopShutterSwingMin  = -7.f,
 									   TopShutterSwingMax  =  83.f;
 	UPROPERTY(EditAnywhere)      float BotShutterSwingMin  = -13.f,
@@ -82,4 +82,6 @@ public:
 	/// </summary>
 	/// <param name="bNewOpen">Open(true) or closed(false) state</param>
 	UFUNCTION(BlueprintCallable) void SetOpen(bool bNewOpen);
+private:
+	float UnwrapGeminiDomeRot(float NewRotation);
 };

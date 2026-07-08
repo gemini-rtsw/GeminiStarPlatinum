@@ -33,8 +33,8 @@ public:
 	UPROPERTY(BlueprintReadOnly) const UMotionLimitSettings* MotionLimitSettings;
 
 	// Rotational limits
-	UPROPERTY(EditAnywhere)      float AzimTwistMin    = -179.9f,
-								       AzimTwistMax    =  180.f;
+	UPROPERTY(EditAnywhere)      float AzimTwistMin    = -180.f,
+								       AzimTwistMax    =  360.f;
 	UPROPERTY(EditAnywhere)      float ElevTwistMin    = -90.f,
 								       ElevTwistMax    =  0.f;
 	UPROPERTY(EditAnywhere)      float CassTwistMin    = -179.9f,
@@ -47,4 +47,7 @@ public:
 	UFUNCTION(BlueprintCallable) void SetCassTarget(float Degrees, bool BroadcastFlag);
 	UFUNCTION(BlueprintCallable) void SetTargets(float Azim, float Elev, float Cass);
 	UFUNCTION(BlueprintCallable) void ToggleLaser(bool bLaserState);
+private:
+	float UnwrapGeminiAz(float NewRotation);
+
 };
