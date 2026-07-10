@@ -16,6 +16,7 @@ UENUM(BlueprintType) enum class EControlMode : uint8 { Manual, Live };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnControlModeChanged, EControlMode, Mode);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFeedStatusChanged, EFeedStatus, Status);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDataQualityChanged, bool, IsStale, float, AgeSeconds);
 
 /**
  * Contains general movement rules coordinated between dome, telescope; Manages data access to TCS Epics API
@@ -29,7 +30,10 @@ public:
 	UPROPERTY(BlueprintReadOnly) EControlMode Mode = EControlMode::Manual;
 	UPROPERTY(BlueprintAssignable) FOnControlModeChanged OnControlModeChanged;
 	UPROPERTY(BlueprintAssignable) FOnFeedStatusChanged OnFeedStatusChanged;
+	UPROPERTY(BlueprintAssignable) FOnDataQualityChanged OnDataQualityChanged;
 	UPROPERTY(BlueprintReadOnly) EFeedStatus FeedStatus = EFeedStatus::Disconnected;
+	UPROPERTY(BlueprintReadOnly) bool bDataStaleness = false;
+	UPROPERTY(BlueprintReadOnly) float DataAgeSeconds = 0.f;
 
 	/// <summary>
 	/// Gets the time remaining until the LiveDataFeed's next reconnect attempt. Returns 0 if not currently reconnecting.
@@ -63,4 +67,5 @@ private:
 	/// </summary>
 	/// <param name="NewStatus">New feed status (EFeedStatus)</param>
 	void HandleFeedStatusChanged(EFeedStatus NewStatus);
+	void HandleDataQualityChanged(bool NewStale, float NewAge);
 };

@@ -33,5 +33,5 @@ protected:
 	/// Implemented in the Blueprint child; applies NewTime to the Celestial Vault actor.
 	/// </summary>
 	/// <param name="NewTime">Validated site-local datetime from UEnvironmentModel::CurrentTime.</param>
-	UFUNCTION(BlueprintImplementableEvent) void OnTimeChanged(FDateTime NewTime);
+	UFUNCTION(BlueprintImplementableEvent) void OnTimeChanged(FDateTime NewTime, bool TimeProgresses);
 };

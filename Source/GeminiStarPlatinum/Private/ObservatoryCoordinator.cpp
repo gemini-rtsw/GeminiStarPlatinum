@@ -10,6 +10,14 @@ void UObservatoryCoordinator::HandleFeedStatusChanged(EFeedStatus NewStatus)
 	OnFeedStatusChanged.Broadcast(FeedStatus);
 }
 
+void UObservatoryCoordinator::HandleDataQualityChanged(bool NewStale, float NewAge)
+{
+	if (bDataStaleness == NewStale && DataAgeSeconds == NewAge) return;
+	bDataStaleness = NewStale;
+	DataAgeSeconds = NewAge;
+	OnDataQualityChanged.Broadcast(NewStale, NewAge);
+}
+
 void UObservatoryCoordinator::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -20,6 +28,7 @@ void UObservatoryCoordinator::Initialize(FSubsystemCollectionBase& Collection)
 	Feed = NewObject<ULiveDataFeed>(this);
 	Feed->Initialize(GetGameInstance());
 	Feed->OnStatusChanged.AddUObject(this, &UObservatoryCoordinator::HandleFeedStatusChanged);
+	Feed->OnDataQualityChanged.AddUObject(this, &UObservatoryCoordinator::HandleDataQualityChanged);
 }
 
 void UObservatoryCoordinator::Deinitialize()

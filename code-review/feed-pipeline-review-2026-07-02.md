@@ -17,7 +17,7 @@ Severity legend: 🔴 fix before relying on the live path · 🟡 should fix · 
 - In `ApplyLine`, reject non-finite values (`FMath::IsFinite`).
 - Add min/max clamps to the dome shutter/vent setters, mirroring the twist clamp (the header at `DomeModel.h:27` already notes limits should come from a data asset — the shutter/vent limits belong there too).
 
-### 🔴 1.2 An exception from `source.read()` kills the whole bridge
+### 🔴 1.2 An exception from `source.read()` kills the whole bridge [FINISHED]
 `serve_client` (`server.py:34-41`) is wrapped only by handlers for connection errors and `KeyboardInterrupt` (`server.py:75-82`). Any exception raised by `source.read()` — and pyepics *can* raise on CA disconnects, context teardown, or type conversion — propagates out of `main()` and terminates the process. The Unreal side then cycles Reconnecting→Failed with nothing to reconnect to. Catch `Exception` around the read (log and skip the sample, or send the last-known payload), reserving the connection-error handlers for the socket path.
 
 ### 🟡 1.3 Blocking `sendall` with no backpressure policy → stale-burst flood
@@ -26,7 +26,7 @@ Severity legend: 🔴 fix before relying on the live path · 🟡 should fix · 
 - **Bridge:** set a send timeout or use a non-blocking socket and drop samples when the buffer is full ("latest value wins" — this is also how CA monitors behave).
 - **Feed:** after splitting lines, apply only the *last* complete line per tick (or per key). This also caps per-frame JSON parsing cost after reconnects.
 
-### 🟡 1.4 Stale data is indistinguishable from live data
+### 🟡 1.4 Stale data is indistinguishable from live data [FINISHED]
 When a PV disconnects, `EpicsSource.read()` silently omits the key (`data_source.py:88-91`), the sim keeps its last target, and the UI still says **Live** (status is "bytes are arriving", `LiveDataFeed.cpp:154-156`). An operator-facing display that shows frozen positions as live is the kind of thing observatory staff notice immediately. Recommend adding to the wire schema:
 
 - a bridge-side timestamp (and later, the CA server timestamp per PV), and
@@ -64,7 +64,7 @@ This matters more as the UI grows (per the dual-audience visualization goal, lis
 ### 🟡 2.2 Polling loop vs. CA's event-driven model
 The bridge polls `pv.get()` at a fixed `--rate` (`server.py:36-41`, `data_source.py:86-91`). Channel Access is publish/subscribe: the idiomatic client subscribes once (`camonitor` / `PV(..., callback=)`) and receives updates only on change, with server timestamps. Polling at 20 Hz against 1 Hz PVs does 20× redundant work and *adds up to one poll period of latency*; against fast PVs it undersamples. Recommended restructure (see §4.1): CA callbacks update a shared latest-values dict; the TCP loop streams that dict (on change, or at a capped rate). This keeps the wire format identical while making the CA side correct.
 
-### 🔵 2.3 No `TCP_NODELAY` on the bridge socket
+### 🔵 2.3 No `TCP_NODELAY` on the bridge socket [FINISHED]
 Small (~120 byte) JSON lines at 20 Hz are exactly what Nagle's algorithm coalesces; on some stacks this adds tens of ms of latency and makes samples arrive in clumps. Set `conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)` after `accept()`. (The Unreal side only reads, so it doesn't need it.)
 
 ### 🔵 2.4 `time.sleep(period)` ignores processing time

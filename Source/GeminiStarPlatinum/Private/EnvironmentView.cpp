@@ -38,6 +38,6 @@ void AEnvironmentView::HandleStateChanged()
 {
 	if (const UEnvironmentModel* Model = GetGameInstance()->GetSubsystem<UEnvironmentModel>())
 	{
-		OnTimeChanged(Model->CurrentTime);
+		OnTimeChanged(Model->CurrentTime, Model->bTimeProgresses);
 	}
 }

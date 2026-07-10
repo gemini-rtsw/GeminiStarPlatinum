@@ -19,3 +19,10 @@ ETimeVerificationError UEnvironmentModel::SetCurrentTime(int32 Year, int32 Month
 	OnStateChanged.Broadcast();
 	return ETimeVerificationError::None;
 }
+
+void UEnvironmentModel::SetTimeProgression(bool NewState)
+{
+	//if (bTimeProgresses == NewState) return;
+	bTimeProgresses = NewState;
+	//OnStateChanged.Broadcast();
+}
