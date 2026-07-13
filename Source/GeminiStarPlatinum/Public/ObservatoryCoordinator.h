@@ -67,5 +67,11 @@ private:
 	/// </summary>
 	/// <param name="NewStatus">New feed status (EFeedStatus)</param>
 	void HandleFeedStatusChanged(EFeedStatus NewStatus);
+	/// <summary>
+	/// Changes the bDataStaleness and DataAgeSeconds properties and broadcast the OnDataQualityChanged event.
+	/// Early exit if both are unchanged.
+	/// </summary>
+	/// <param name="NewStale">New staleness state (bool)</param>
+	/// <param name="NewAge">New age in seconds (float)</param>
 	void HandleDataQualityChanged(bool NewStale, float NewAge);
 };

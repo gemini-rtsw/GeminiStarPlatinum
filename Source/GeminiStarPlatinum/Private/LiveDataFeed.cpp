@@ -79,6 +79,7 @@ bool ULiveDataFeed::OpenSocket()
 		Socket = nullptr;
 	}
 
+	// TODO: Only takes in IPV4 literals, update to GetAddressInfo and verify functionality
 	FIPv4Address Addr;
 	if (!FIPv4Address::Parse(Host, Addr))
 	{
