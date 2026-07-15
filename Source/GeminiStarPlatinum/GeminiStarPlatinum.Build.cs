@@ -11,7 +11,7 @@ public class GeminiStarPlatinum : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
 
 		// Live data feed (Python bridge over TCP/JSON-lines): sockets for transport, Json for payload parsing.
-		PrivateDependencyModuleNames.AddRange(new string[] { "Sockets", "Networking", "Json" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Sockets", "Networking", "Json", "CelestialVault"});
 
 
 		// Uncomment if you are using Slate UI

@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "LiveDataFeed.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include <CelestialVaultDaySequenceActor.h>
+#include "MovingTelescope.h"
+#include "Kismet/GameplayStatics.h"
 #include "ObservatoryCoordinator.generated.h"
 
 /**
@@ -34,6 +37,12 @@ public:
 	UPROPERTY(BlueprintReadOnly) EFeedStatus FeedStatus = EFeedStatus::Disconnected;
 	UPROPERTY(BlueprintReadOnly) bool bDataStaleness = false;
 	UPROPERTY(BlueprintReadOnly) float DataAgeSeconds = 0.f;
+	UPROPERTY(BlueprintReadWrite) float AzimZeroOffset = 0.f;
+	/// <summary>
+	/// Calibration constant added to the mapped elevation target, in degrees. Measured in-viz
+	/// against known stars (cf. AMovingTelescope::GetElevSwing's -3 readout offset). Default 0.
+	/// </summary>
+	UPROPERTY(BlueprintReadWrite) float ElevZeroOffset = -3.f;
 
 	/// <summary>
 	/// Gets the time remaining until the LiveDataFeed's next reconnect attempt. Returns 0 if not currently reconnecting.
@@ -56,11 +65,23 @@ public:
 	/// <param name="NewMode">New mode to set observatory to (EControlMode).</param>
 	UFUNCTION(BlueprintCallable) void SetControlMode(EControlMode NewMode);
 
+	// Star tracking public functions
+	UFUNCTION(BlueprintCallable) void SlewToStar(const FString& Name);
+	UFUNCTION(BlueprintCallable) void TrackStar(const FString& Name);
+	UFUNCTION(BlueprintCallable) void ToggleTracking(const bool NewState);
+
+
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
 private:
 	UPROPERTY() ULiveDataFeed* Feed = nullptr;
+	UPROPERTY() TWeakObjectPtr<ACelestialVaultDaySequenceActor> CelestialVault = nullptr;
+	UPROPERTY() TWeakObjectPtr<AMovingTelescope> Telescope = nullptr;
+	UPROPERTY() FStarInfo TrackedStar;
+	UPROPERTY() bool bTracking = false;
+	UPROPERTY() FTimerHandle TrackingTimer;
+
 	/// <summary>
 	/// Changes the FeedStatus property and broadcast the OnFeedStatusChanged event.
 	/// Early exit if the status is unchanged.
@@ -74,4 +95,15 @@ private:
 	/// <param name="NewStale">New staleness state (bool)</param>
 	/// <param name="NewAge">New age in seconds (float)</param>
 	void HandleDataQualityChanged(bool NewStale, float NewAge);
+
+	bool FindStarByName(const FString& Name, FStarInfo& Out) const;
+	/// <summary>
+	/// Maps an altitude above the horizon to the telescope model's ElevTarget frame
+	/// (0 = zenith, -90 = horizon), i.e. Alt - 90 + ElevZeroOffset. Unclamped;
+	/// UTelescopeModel::SetElevTarget clamps to [ElevTwistMin, ElevTwistMax].
+	/// </summary>
+	/// <param name="AltTarget">Altitude above the horizon in degrees, [0, 90] when reachable.</param>
+	/// <returns>Elevation target in degrees in the model's [-90, 0] frame.</returns>
+	float MapAltToElevTarget(const float AltTarget);
+	void SolveTrackingMovement(const FStarInfo& StarInfo);
 };
