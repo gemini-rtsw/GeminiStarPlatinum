@@ -85,6 +85,8 @@ void UObservatoryCoordinator::SlewToStar(const FString& Name)
 	FStarInfo StarInfo;
 	if (!FindStarByName(Name, StarInfo)) return;
 
+	ToggleTracking(false);
+
 	FTransform ISMInstanceTransform;
 	CelestialVault->StarsComponent->GetInstanceTransform(StarInfo.ISMInstanceIndex, ISMInstanceTransform, true);
 
@@ -108,7 +110,6 @@ void UObservatoryCoordinator::SlewToStar(const FString& Name)
 
 void UObservatoryCoordinator::TrackStar(const FString& Name)
 {
-	// TODO: track mode — cache the resolved star and re-solve on a timer (see plans/star-goto-pointing.md §5).
 	if (!CelestialVault.IsValid())
 		CelestialVault =
 		Cast<ACelestialVaultDaySequenceActor>(
@@ -123,14 +124,33 @@ void UObservatoryCoordinator::TrackStar(const FString& Name)
 	FStarInfo StarInfo;
 	if (!FindStarByName(Name, StarInfo)) return;
 
-	if (StarInfo.Name == TrackedStar.Name) return;
-	
+	if (StarInfo.Name == TrackedStar.Name) return; // Early exit if the target star is the same as current star
+	TrackedStar = StarInfo;
+
+	if (bTracking)
+		GetGameInstance()->GetTimerManager().ClearTimer(TrackingTimer);
+
+	bTracking = true;
+	GetGameInstance()->GetTimerManager().SetTimer(TrackingTimer, this, &UObservatoryCoordinator::SolveTrackingMovement, 0.5f, true);
 }
 
-void UObservatoryCoordinator::SolveTrackingMovement(const FStarInfo& StarInfo)
+void UObservatoryCoordinator::SolveTrackingMovement()
 {
+	if (!bTracking) return;
+
+	if (!CelestialVault.IsValid())
+		CelestialVault =
+		Cast<ACelestialVaultDaySequenceActor>(
+			UGameplayStatics::GetActorOfClass(GetGameInstance()->GetWorld(),
+				ACelestialVaultDaySequenceActor::StaticClass()));
+	if (!Telescope.IsValid())
+		Telescope =
+		Cast<AMovingTelescope>(
+			UGameplayStatics::GetActorOfClass(GetGameInstance()->GetWorld(),
+				AMovingTelescope::StaticClass()));
+
 	FTransform ISMInstanceTransform;
-	CelestialVault->StarsComponent->GetInstanceTransform(StarInfo.ISMInstanceIndex, ISMInstanceTransform, true);
+	CelestialVault->StarsComponent->GetInstanceTransform(TrackedStar.ISMInstanceIndex, ISMInstanceTransform, true);
 
 	FVector Dir = (ISMInstanceTransform.GetLocation() - Telescope->GetActorTransform().GetLocation()).GetSafeNormal();
 	const FVector DirInBase = Telescope->GetActorTransform().InverseTransformVectorNoScale(Dir);
@@ -144,7 +164,9 @@ void UObservatoryCoordinator::SolveTrackingMovement(const FStarInfo& StarInfo)
 
 	if (ElevDeg > 0.f || ElevDeg < -90.f)
 	{
-
+		GetGameInstance()->GetTimerManager().ClearTimer(TrackingTimer);
+		bTracking = false;
+		return;
 	}
 
 	if (auto* M = GetGameInstance()->GetSubsystem<UTelescopeModel>())
@@ -158,6 +180,15 @@ void UObservatoryCoordinator::ToggleTracking(const bool NewState)
 	if (bTracking == NewState) return;
 	
 	bTracking = NewState;
+	if (!bTracking)
+	{
+		GetGameInstance()->GetTimerManager().ClearTimer(TrackingTimer);
+		TrackedStar = FStarInfo();
+	}
+	else
+	{
+		GetGameInstance()->GetTimerManager().SetTimer(TrackingTimer, this, &UObservatoryCoordinator::SolveTrackingMovement, 0.5f, true);
+	}
 }
 
 bool UObservatoryCoordinator::FindStarByName(const FString& Name, FStarInfo& Out) const

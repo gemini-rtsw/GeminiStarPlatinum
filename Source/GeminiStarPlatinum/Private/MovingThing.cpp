@@ -167,7 +167,7 @@ void AMovingThing::TwistComponent(
         Constraint->SetAngularVelocityTarget(FVector::ZeroVector);
         Constraint->SetAngularDriveParams(TwistStrength, VelocityDamping, 0.f);
     }
-	Constraint->SetAngularDriveAccelerationMode(bAccelerationMode); // Set each tick in case the mode is changed
+	//Constraint->SetAngularDriveAccelerationMode(bAccelerationMode); // Set each tick in case the mode is changed
 }
 
 // Handles swinging movement of a component
@@ -194,7 +194,7 @@ void AMovingThing::SwingComponent(
         Constraint->SetAngularVelocityTarget(FVector::ZeroVector);
         Constraint->SetAngularDriveParams(SwingStrength, VelocityDamping, 0.f);
     }
-	Constraint->SetAngularDriveAccelerationMode(bAccelerationMode); // Set each tick in case the mode is changed
+	//Constraint->SetAngularDriveAccelerationMode(bAccelerationMode); // Set each tick in case the mode is changed
 }
 
 /// <summary>

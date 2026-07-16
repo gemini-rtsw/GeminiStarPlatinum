@@ -42,7 +42,7 @@ public:
 	/// Calibration constant added to the mapped elevation target, in degrees. Measured in-viz
 	/// against known stars (cf. AMovingTelescope::GetElevSwing's -3 readout offset). Default 0.
 	/// </summary>
-	UPROPERTY(BlueprintReadWrite) float ElevZeroOffset = -3.f;
+	UPROPERTY(BlueprintReadWrite) float ElevZeroOffset = 0.f;
 
 	/// <summary>
 	/// Gets the time remaining until the LiveDataFeed's next reconnect attempt. Returns 0 if not currently reconnecting.
@@ -105,5 +105,5 @@ private:
 	/// <param name="AltTarget">Altitude above the horizon in degrees, [0, 90] when reachable.</param>
 	/// <returns>Elevation target in degrees in the model's [-90, 0] frame.</returns>
 	float MapAltToElevTarget(const float AltTarget);
-	void SolveTrackingMovement(const FStarInfo& StarInfo);
+	void SolveTrackingMovement();
 };
