@@ -4,7 +4,11 @@
 #include "MovingThing.h"
 #include "TelescopeModel.h"
 #include "Components/BillboardComponent.h"
+#include "InputActionValue.h"
 #include "MovingTelescope.generated.h"
+
+class UInputAction;
+class UInputMappingContext;
 
 UCLASS()
 class GEMINISTARPLATINUM_API AMovingTelescope : public AMovingThing
@@ -21,6 +25,12 @@ public:
     // When button is pressed, the laser will be turned on
     UPROPERTY(BlueprintReadWrite)
     bool bLaserOn = false;
+
+    /// <summary>
+    /// When true, COM debug display is drawn 
+    /// </summary>
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+    bool bShowCOMDisplay = true;
 
     // Azimuth center of mass offset relative to the center of mass calculated from static mesh
     UPROPERTY(BlueprintReadWrite)
@@ -131,6 +141,12 @@ protected:
     UPROPERTY(VisibleAnywhere)
     UPhysicsConstraintComponent* FluxCapacitorConstraint;
 
+    // Input assets
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+    UInputMappingContext* DefaultMappingContext;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+    UInputAction* ToggleCOMAction;
+
     // UPROPERTY(VisibleAnywhere)
     // UBillboardComponent* COMMarker;
     // UPROPERTY(VisibleAnywhere)
@@ -143,4 +159,6 @@ protected:
 
     // Display COM dot each frame
     void DisplayCenterOfMass();
+
+    void OnToggleCOM(const FInputActionValue& Value);
 };

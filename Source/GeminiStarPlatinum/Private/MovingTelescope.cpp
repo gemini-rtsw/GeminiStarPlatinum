@@ -1,4 +1,6 @@
 #include "MovingTelescope.h"
+#include <EnhancedInputSubsystems.h>
+#include <EnhancedInputComponent.h>
 
 // Sets default values
 AMovingTelescope::AMovingTelescope()
@@ -150,54 +152,78 @@ AMovingTelescope::AMovingTelescope()
 void AMovingTelescope::BeginPlay()
 {
     Super::BeginPlay();
-    DisplayCenterOfMass();
+
+    // Expose the actor to the input system; must run here (not the constructor) — no world/player exists during CDO construction
+    if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+    {
+        EnableInput(PC);
+
+        if (ULocalPlayer* LP = PC->GetLocalPlayer())
+            if (auto* Subsys = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+                if (DefaultMappingContext)
+                    Subsys->AddMappingContext(DefaultMappingContext, 0);
+
+        if (auto* EIC = Cast<UEnhancedInputComponent>(InputComponent))
+            if (ToggleCOMAction)
+                EIC->BindAction(ToggleCOMAction, ETriggerEvent::Triggered, this, &AMovingTelescope::OnToggleCOM);
+    }
+
+    if (bShowCOMDisplay) DisplayCenterOfMass();
 }
 
 // Called every frame
 void AMovingTelescope::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    DisplayCenterOfMass();
+    if (bShowCOMDisplay) DisplayCenterOfMass();
 
     if (!Model) Model = GetGameInstance()->GetSubsystem<UTelescopeModel>();
-
-    FVector LinForce;
-    FVector AngForce;
-    ElevConstraint->GetConstraintForce(LinForce, AngForce);
-    float ForceMagnitude = AngForce.Size();
-    float MinValue = 0.f;
-    float MaxValue = 50000.f;
-
-    // Clamp and normalize
-    float Normalized = FMath::Clamp((ForceMagnitude - MinValue) / (MaxValue - MinValue), 0.f, 1.f);
-
-    // Interpolate between green and red
-    FLinearColor GreenColor = FLinearColor::Green;
-    FLinearColor RedColor = FLinearColor::Red;
-    FLinearColor MixedColor = FLinearColor::LerpUsingHSV(GreenColor, RedColor, Normalized); // HSV for smoother hue blend
-
-    // Convert to FColor for debug draw
-    FColor FinalColor = MixedColor.ToFColor(true);
-
-    FVector Direction(0.f, 0.f, 1.f);
-    FVector Start = Elev->GetComponentLocation() + (Direction * -500);
-    FVector End = Start + (Direction * 1000);
-    DrawDebugLine(GetWorld(), Start, End, FinalColor, false, 0.f, 1, 4.f);
-
-    FVector ElevDirection = Elev->GetForwardVector();
-    DrawDebugLine(GetWorld(), Elev->GetComponentLocation() + (ElevDirection * -500.f), Elev->GetComponentLocation() + (ElevDirection * 500.f), FColor::Emerald, false, 0.f, 1, 4.f);
-    if (Model->bLaserOn)
+    
+    if (bShowCOMDisplay)
     {
-        DrawDebugLine(GetWorld(), Elev->GetComponentLocation() + (ElevDirection * 1500.f), Elev->GetComponentLocation() + (ElevDirection * 100000.f), FColor::Yellow, false, 0.f, 0, 10.f);
+        FVector LinForce;
+        FVector AngForce;
+        ElevConstraint->GetConstraintForce(LinForce, AngForce);
+        float ForceMagnitude = AngForce.Size();
+        float MinValue = 0.f;
+        float MaxValue = 50000.f;
+
+        // Clamp and normalize
+        float Normalized = FMath::Clamp((ForceMagnitude - MinValue) / (MaxValue - MinValue), 0.f, 1.f);
+
+        // Interpolate between green and red
+        FLinearColor GreenColor = FLinearColor::Green;
+        FLinearColor RedColor = FLinearColor::Red;
+        FLinearColor MixedColor = FLinearColor::LerpUsingHSV(GreenColor, RedColor, Normalized); // HSV for smoother hue blend
+
+        // Convert to FColor for debug draw
+        FColor FinalColor = MixedColor.ToFColor(true);
+
+        FVector Direction(0.f, 0.f, 1.f);
+        FVector Start = Elev->GetComponentLocation() + (Direction * -500);
+        FVector End = Start + (Direction * 1000);
+        DrawDebugLine(GetWorld(), Start, End, FinalColor, false, 0.f, 1, 4.f);
+
+        FVector ElevForward = Elev->GetForwardVector();
+        FVector ElevDown = -Elev->GetUpVector();
+        FVector ElevRight = Elev->GetRightVector();
+        FVector ElevLoc = Elev->GetComponentLocation();
+        DrawDebugLine(GetWorld(), ElevLoc + (ElevForward * -500.f), ElevLoc + (ElevForward * 500.f), FColor::Emerald, false, 0.f, 1, 4.f);
+        DrawDebugLine(GetWorld(), ElevLoc + (ElevDown * -500.f), ElevLoc + (ElevDown * 500.f), FColor::Red, false, 0.f, 1, 4.f);
+        DrawDebugLine(GetWorld(), ElevLoc + (ElevRight * -500.f), ElevLoc + (ElevRight * 500.f), FColor::Blue, false, 0.f, 1, 4.f);
+        if (Model->bLaserOn)
+        {
+            DrawDebugLine(GetWorld(), Elev->GetComponentLocation() + (ElevForward * 1500.f), Elev->GetComponentLocation() + (ElevForward * 100000.f), FColor::Yellow, false, 0.f, 0, 10.f);
+        }
+
+        FVector ElevLinForce;
+        FVector ElevAngForce;
+        ElevConstraint->GetConstraintForce(ElevLinForce, ElevAngForce);
+
+        DrawDebugString(GetWorld(), Elev->GetCenterOfMass() + FVector(0.f, 0.f, -60.f), Elev->GetComponentRotation().ToString(), nullptr, FColor::Red, 0.f, true, 1.f);
+        DrawDebugString(GetWorld(), Cass->GetCenterOfMass() + FVector(0.f, 0.f, -60.f), Cass->GetComponentRotation().ToString(), nullptr, FColor::Yellow, 0.f, true, 1.f);
+        DrawDebugString(GetWorld(), CassConstraint->GetComponentLocation() + FVector(0.f, 0.f, -400.f), ElevAngForce.ToString(), nullptr, FColor::Red, 0.f, true, 1.4f);
     }
-
-    FVector ElevLinForce;
-    FVector ElevAngForce;
-    ElevConstraint->GetConstraintForce(ElevLinForce, ElevAngForce);
-
-    DrawDebugString(GetWorld(), Elev->GetCenterOfMass() + FVector(0.f, 0.f, -60.f), Elev->GetComponentRotation().ToString(), nullptr, FColor::Red, 0.f, true, 1.f);
-    DrawDebugString(GetWorld(), Cass->GetCenterOfMass() + FVector(0.f, 0.f, -60.f), Cass->GetComponentRotation().ToString(), nullptr, FColor::Yellow, 0.f, true, 1.f);
-    DrawDebugString(GetWorld(), CassConstraint->GetComponentLocation() + FVector(0.f, 0.f, -400.f), ElevAngForce.ToString(), nullptr, FColor::Red, 0.f, true, 1.4f);
 
     // Update motion of components
     TwistComponent(AzimConstraint, AzimTwistState, Model->AzimTarget, AzimTwistStrength, AzimVelocityTarget, AzimVelocityDamping, AzimAngularThreshold);
@@ -259,4 +285,9 @@ float AMovingTelescope::GetElevSwing()
 float AMovingTelescope::GetCassTwist()
 {
 	return CassConstraint->GetCurrentTwist();
+}
+
+void AMovingTelescope::OnToggleCOM(const FInputActionValue& Value)
+{
+    bShowCOMDisplay = !bShowCOMDisplay;
 }
