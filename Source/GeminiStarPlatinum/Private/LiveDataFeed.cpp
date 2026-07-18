@@ -293,6 +293,7 @@ void ULiveDataFeed::ApplyLine(const FString& Line)
 		if (Json->TryGetNumberField(TEXT("vent"), Value) && FMath::IsFinite(Value))
 			Vent = Value;
 		Dome->SetTargets(DomeTwist, TopShutter, BotShutter, Vent);
+		//UE_LOG(LogTemp, Log, TEXT("TopS: %f, BotS: %f"), TopShutter, BotShutter);
 	}
 
 	double AgeVal = 0.0;

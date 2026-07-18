@@ -29,8 +29,10 @@ class GeminiTestIOC(PVGroup):
     """Group of test PVs. caproto serves each pvproperty as one channel."""
 
     # Enclosure controller (ec) -----------------------------------------------
-    top_shtr_pos = pvproperty(value=0.0, name="ec:topShtrPos", precision=2, units="%")
-    bot_shtr_pos = pvproperty(value=0.0, name="ec:botShtrPos", precision=2, units="%")
+    # Shutter positions are degrees in the real TCS frame: top closed reads 11.5,
+    # bottom closed reads 12.1 (open readings provisional; see feed_bridge/data_source.py).
+    top_shtr_pos = pvproperty(value=11.5, name="ec:topShtrPos", precision=2, units="deg")
+    bot_shtr_pos = pvproperty(value=12.1, name="ec:botShtrPos", precision=2, units="deg")
     dome_pos = pvproperty(value=0.0, name="ec:domePos", precision=2, units="deg")
     east_vent = pvproperty(value=0.0, name="ec:eastVentGatePos", precision=2, units="%")
     west_vent = pvproperty(value=0.0, name="ec:westVentGatePos", precision=2, units="%")
@@ -54,10 +56,13 @@ class GeminiTestIOC(PVGroup):
         t = 0.0
         while True:
             await self.dome_pos.write((t * 5.0) % 360.0)
-            await self.top_shtr_pos.write(50.0 + 50.0 * math.sin(t * 0.2))
-            await self.bot_shtr_pos.write(50.0 + 50.0 * math.sin(t * 0.2 + 0.5))
+            # Shutters sweep their real-frame degree ranges (closed <-> provisional open)
+            await self.top_shtr_pos.write(56.5 + 45.0 * math.sin(t * 0.2))
+            await self.bot_shtr_pos.write(7.35 + 4.75 * math.sin(t * 0.2 + 0.5))
             await self.az_pos.write((180.0 + t * 2.0) % 360.0)
-            await self.el_pos.write(-45.0 - 20.0 * math.sin(t * 0.1))
+            # Elevation is real-frame altitude (0 = horizon, 90 = zenith); the bridge
+            # maps it to the sim's [-90, 0] frame
+            await self.el_pos.write(45.0 + 20.0 * math.sin(t * 0.1))
             await self.cr_pos.write((t * 3.0) % 360.0)
             t += 1.0
             await async_lib.library.sleep(1.0)

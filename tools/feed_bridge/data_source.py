@@ -32,8 +32,26 @@ from abc import ABC, abstractmethod
 # against one list.
 PAYLOAD_KEYS = ("azim", "elev", "cass", "dome_twist", "top_shutter", "bot_shutter", "vent")
 
+def lin_map(x, x0, x1, y0, y1) -> float:
+    """Affine map of x from [x0, x1] to [y0, y1]. Unclamped; the sim models clamp."""
+    return y0 + (x - x0) * (y1 - y0) / (x1 - x0)
+
 def pct_to_range(p, lo, hi) -> float:
-    return (1-p)*lo + p*hi
+    return lin_map(p, 0.0, 1.0, lo, hi)
+
+# Shutter calibration anchors: real TCS PV reading (degrees) <-> sim frame (degrees).
+# Sim endpoints come from UDomeModel::SetOpen / TopShutterSwing / BotShutterSwing limits.
+# CLOSED readings measured on the real TCS. OPEN readings are PROVISIONAL: they assume the
+# PV tracks the same physical hinge 1:1 (offset-only map) — replace with measured values
+# once the shutters are observed fully open.
+TOP_SHUTTER_DEG_CLOSED = 11.5
+TOP_SHUTTER_DEG_OPEN   = 101.5  # provisional (= closed + 90 deg sim travel)
+TOP_SHUTTER_SIM_CLOSED = -7.0
+TOP_SHUTTER_SIM_OPEN   = 83.0
+BOT_SHUTTER_DEG_CLOSED = 12.1
+BOT_SHUTTER_DEG_OPEN   = 2.6    # provisional (= closed - 9.5 deg sim travel)
+BOT_SHUTTER_SIM_CLOSED = -3.5
+BOT_SHUTTER_SIM_OPEN   = -13.0
 
 class DataSource(ABC):
     """Abstract positional data source."""
@@ -98,16 +116,24 @@ class EpicsSource(DataSource):
             if key in raw:
                 payload[key] = raw[key]
 
-        # Shutter and vent values are stored in EPICS as 0-100% open. Convert to
-        # Unreal's expected range.
-        # Chosen lo, hi values are magic numbers derived from physical limits of telescope and dome.
+        # Shutter PVs report degrees in the TCS frame. Map to the sim frame using the
+        # calibration anchors above (closed measured, open provisional).
         if "top_shutter" in raw:
-            payload["top_shutter"] = pct_to_range(raw["top_shutter"]/100.0, -7.0, 83.0)
+            payload["top_shutter"] = lin_map(raw["top_shutter"],
+                                             TOP_SHUTTER_DEG_CLOSED, TOP_SHUTTER_DEG_OPEN,
+                                             TOP_SHUTTER_SIM_CLOSED, TOP_SHUTTER_SIM_OPEN)
         if "bot_shutter" in raw:
-            payload["bot_shutter"] = pct_to_range(raw["bot_shutter"]/100.0, -3.5, -13.0)
-        
-        # Average the two independent vent slide percentages into a single value for Unreal
+            payload["bot_shutter"] = lin_map(raw["bot_shutter"],
+                                             BOT_SHUTTER_DEG_CLOSED, BOT_SHUTTER_DEG_OPEN,
+                                             BOT_SHUTTER_SIM_CLOSED, BOT_SHUTTER_SIM_OPEN)
+
+        # Vent PVs report 0-100% open. Average the two independent vent slides into a
+        # single value for Unreal. Sim endpoints are magic numbers from physical limits.
         vents = [raw[k] for k in ("vent_west", "vent_east") if k in raw]
         if vents:
             payload["vent"] = pct_to_range(sum(vents)/len(vents)/100.0, 0.0, 500.0)
+
+        if "elev" in payload:
+            payload["elev"] = raw["elev"] - 90.0
+        
         return payload

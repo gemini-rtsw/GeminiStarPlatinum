@@ -204,6 +204,7 @@ void AMovingTelescope::Tick(float DeltaTime)
         FVector End = Start + (Direction * 1000);
         DrawDebugLine(GetWorld(), Start, End, FinalColor, false, 0.f, 1, 4.f);
 
+        // Create a 3D axis + vertical axis from ground in world-space, debug
         FVector ElevForward = Elev->GetForwardVector();
         FVector ElevDown = -Elev->GetUpVector();
         FVector ElevRight = Elev->GetRightVector();
