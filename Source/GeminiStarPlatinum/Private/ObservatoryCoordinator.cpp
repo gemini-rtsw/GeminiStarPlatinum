@@ -173,6 +173,11 @@ void UObservatoryCoordinator::SolveTrackingMovement()
 	{
 		M->SetTargets(AzimDeg, ElevDeg, M->CassTarget);
 	}
+
+	if (auto* D = GetGameInstance()->GetSubsystem<UDomeModel>())
+	{
+		D->SetDomeTwistTarget(AzimDeg, true);
+	}
 }
 
 void UObservatoryCoordinator::ToggleTracking(const bool NewState)

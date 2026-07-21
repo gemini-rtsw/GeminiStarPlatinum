@@ -7,6 +7,7 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include <CelestialVaultDaySequenceActor.h>
 #include "MovingTelescope.h"
+#include "MovingDome.h"
 #include "Kismet/GameplayStatics.h"
 #include "ObservatoryCoordinator.generated.h"
 
