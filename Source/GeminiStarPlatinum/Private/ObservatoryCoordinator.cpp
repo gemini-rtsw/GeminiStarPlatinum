@@ -106,6 +106,11 @@ void UObservatoryCoordinator::SlewToStar(const FString& Name)
 	{
 		M->SetTargets(AzimDeg, ElevDeg, M->CassTarget);
 	}
+
+	if (auto* D = GetGameInstance()->GetSubsystem<UDomeModel>())
+	{
+		D->SetDomeTwistTarget(AzimDeg, true);
+	}
 }
 
 void UObservatoryCoordinator::TrackStar(const FString& Name)
@@ -124,7 +129,7 @@ void UObservatoryCoordinator::TrackStar(const FString& Name)
 	FStarInfo StarInfo;
 	if (!FindStarByName(Name, StarInfo)) return;
 
-	if (StarInfo.Name == TrackedStar.Name) return; // Early exit if the target star is the same as current star
+	if (StarInfo.Name == TrackedStar.Name && bTracking) return; // Early exit if the target star is the same as current star
 	TrackedStar = StarInfo;
 
 	if (bTracking)
@@ -164,8 +169,7 @@ void UObservatoryCoordinator::SolveTrackingMovement()
 
 	if (ElevDeg > 0.f || ElevDeg < -90.f)
 	{
-		GetGameInstance()->GetTimerManager().ClearTimer(TrackingTimer);
-		bTracking = false;
+		ToggleTracking(false);
 		return;
 	}
 
