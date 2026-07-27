@@ -48,6 +48,7 @@ def serve_client(conn: socket.socket, source: DataSource, rate: float) -> None:
     last_value = {}
     last_update = {}
     dropped = 0
+    last_dropped_log = 0.0
     while True:
         mono = time.monotonic()
         try:
@@ -61,6 +62,7 @@ def serve_client(conn: socket.socket, source: DataSource, rate: float) -> None:
         if not last_value:
             time.sleep(period or 0.1)
             continue
+        # Please note: lines sent to Unreal should ALWAYS be complete payloads
         payload = dict(last_value)
         payload["t"] = time.time()
         oldest = min(last_update.get(k,mono) for k in last_value)
@@ -73,6 +75,9 @@ def serve_client(conn: socket.socket, source: DataSource, rate: float) -> None:
             conn.sendall(line)
         else:
             dropped += 1
+            if mono - last_dropped_log > 1.0:
+                logging.warning("client not draining fast enough, dropped %d samples", dropped)
+                last_dropped_log = mono
         if period > 0:
             time.sleep(period)
 

@@ -23,6 +23,7 @@ public:
 	float DomeTwistMax = 270.f;
 
 	// The following three properties were determined from Logan's numbers. Not sure where they came from but trust.
+	// There's another copy of these motion limits on the python side, so update both when modifying one
 	UPROPERTY(Config, EditAnywhere, Category = "Dome Motion Limit Settings")
 	float TopShutterSwingMin = -7.f;
 	UPROPERTY(Config, EditAnywhere, Category = "Dome Motion Limit Settings")

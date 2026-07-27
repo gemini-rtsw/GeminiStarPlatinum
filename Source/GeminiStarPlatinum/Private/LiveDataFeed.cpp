@@ -183,12 +183,6 @@ void ULiveDataFeed::PollSocket()
 				FUTF8ToTCHAR Converted(reinterpret_cast<const ANSICHAR*>(Buffer), BytesRead);
 				RxBuffer.AppendChars(Converted.Get(), Converted.Length());
 
-				if (RxBuffer.GetAllocatedSize() > 64000) // If buffer size > 64KB, assume something went wrong and disconnect
-				{
-					HandleDisconnect();
-					return;
-				}
-
 				continue;
 			}
 
@@ -227,6 +221,13 @@ void ULiveDataFeed::PollSocket()
 	{
 		FString Complete = RxBuffer.Left(LastNewline);
 		RxBuffer.RightChopInline(LastNewline + 1);
+
+		static constexpr int32 MaxPartialChars = 64 * 1024;
+		if (RxBuffer.Len() > MaxPartialChars)
+		{
+			UE_LOG(LogLiveFeed, Warning, TEXT("LiveFeed: %d chars in newline; dropping peer"), RxBuffer.Len());
+			HandleDisconnect();
+		}
 
 		int32 PrevNewline;
 		FString Line = Complete.FindLastChar('\n', PrevNewline)

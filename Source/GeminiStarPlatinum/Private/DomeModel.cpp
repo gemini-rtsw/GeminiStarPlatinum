@@ -140,4 +140,5 @@ void UDomeModel::SetOpen(bool bNewOpen)
         SetVentTarget(VentSlideMin, false);
     }
     OnStateChanged.Broadcast();
+	bDirty = false;
 }
