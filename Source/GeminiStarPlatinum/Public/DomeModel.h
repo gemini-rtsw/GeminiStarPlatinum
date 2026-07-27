@@ -37,14 +37,15 @@ public:
 	UPROPERTY(BlueprintReadOnly) const UMotionLimitSettings* MotionLimitSettings;
 
 	// Rotational limits, retrieved from MotionLimitSettings and kept here for less indirection.
-	UPROPERTY(EditAnywhere)      float DomeTwistMin        = -270.f,
-		                               DomeTwistMax        =  270.f;
-	UPROPERTY(EditAnywhere)      float TopShutterSwingMin  = -7.f,
-									   TopShutterSwingMax  =  83.f;
-	UPROPERTY(EditAnywhere)      float BotShutterSwingMin  = -13.f,
-									   BotShutterSwingMax  = -3.5f;
-	UPROPERTY(EditAnywhere)      float VentSlideMin        =  0.f,
-									   VentSlideMax        =  500.f;
+	// There's another copy of these motion limits on the python side, so update both when modifying one
+	UPROPERTY(EditAnywhere)      float DomeTwistMin;
+	UPROPERTY(EditAnywhere)      float DomeTwistMax;
+	UPROPERTY(EditAnywhere)      float TopShutterSwingMin;
+	UPROPERTY(EditAnywhere)      float TopShutterSwingMax;
+	UPROPERTY(EditAnywhere)      float BotShutterSwingMin;
+	UPROPERTY(EditAnywhere)      float BotShutterSwingMax;
+	UPROPERTY(EditAnywhere)      float VentSlideMin;
+	UPROPERTY(EditAnywhere)      float VentSlideMax;
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 

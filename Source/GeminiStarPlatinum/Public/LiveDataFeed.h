@@ -30,6 +30,11 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnFeedDataQualityChanged, bool /*bStale*/,
  *   {"azim":180.0,"elev":-60.0,"cass":120.0,"dome_twist":0.0,"top_shutter":45.0,"bot_shutter":-7.5,"vent":300.0,"t":236839983.123442,"age":1.498634,"stale":false }\n
  * Each sample is parsed and pushed into UTelescopeModel / UDomeModel via their setters.
  *
+ * All values arrive in the sim's engineering units -- the bridge does the conversion. Note
+ * "elev" is the sim's ElevTarget frame (0 = zenith, -90 = horizon), NOT TCS altitude; the
+ * bridge already applied the Alt - 90 mapping (without UObservatoryCoordinator's
+ * ElevZeroOffset, which is a manual pointing offset rather than a frame calibration).
+ *
  * This object is the ONLY place that knows about sockets/JSON; swapping the transport
  * (UDP, HTTP, EPICS CA) later should not touch the models or actors.
  *

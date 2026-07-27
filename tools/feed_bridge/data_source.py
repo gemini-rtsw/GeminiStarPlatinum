@@ -6,7 +6,8 @@ side (ULiveDataFeed::ApplyLine):
 
     {
         "azim"        : float,   # telescope azimuth, degrees
-        "elev"        : float,   # telescope elevation, degrees
+        "elev"        : float,   # telescope elevation, degrees in the SIM frame:
+                                 #   0 = zenith, -90 = horizon (= TCS altitude - 90)
         "cass"        : float,   # Cassegrain rotator, degrees
         "dome_twist"  : float,   # dome azimuth/twist, degrees
         "top_shutter" : float,   # top shutter swing, degrees
@@ -92,7 +93,15 @@ class EpicsSource(DataSource):
     PV names are supplied as a mapping {payload_key: pv_name}; see pv_map.py.
     """
 
+    CONNECT_TIMEOUT_S = 8.0
+
     def __init__(self, pv_map: dict[str, str]) -> None:
+        # LOAD-BEARING: this import must stay lazy. libca reads EPICS_CA_NAME_SERVERS /
+        # EPICS_CA_ADDR_LIST / EPICS_CA_AUTO_ADDR_LIST once, when its context is created on
+        # first import of `epics`. server.py sets those from --name_servers/--ca_addr in
+        # main(), which runs after its own top-level `import data_source` -- so importing
+        # epics at module level here (or anywhere imported at module level) would silently
+        # break both flags and fall back to UDP broadcast. cf. tools/test_listen.py.
         try:
             import epics  # noqa: F401  (lazy import)
         except ImportError as exc:  # pragma: no cover - depends on environment
@@ -103,6 +112,22 @@ class EpicsSource(DataSource):
         from epics import PV  # type: ignore
 
         self._pvs = {key: PV(name) for key, name in pv_map.items()}
+
+        # Over the tunnel, initial connection takes seconds. read() only guards with
+        # pv.connected, so without this a dead tunnel or a wrong PV name is indistinguishable
+        # from "no motion" -- the bridge just streams empty payloads. Report per PV instead.
+        # Non-fatal: the server still runs, and serve_client carries last known values forward.
+        #
+        # One shared deadline, not a full timeout each: PV() above already kicked off every
+        # search concurrently on pyepics' CA thread, so waiting per PV would serialize an
+        # 8 s stall per dead channel (~1 min of dead air before the bridge starts listening).
+        deadline = time.monotonic() + self.CONNECT_TIMEOUT_S
+        for key, pv in self._pvs.items():
+            remaining = max(0.0, deadline - time.monotonic())
+            if pv.wait_for_connection(timeout=remaining):
+                print(f"[ OK ] {pv_map[key]:20} = {pv.get(timeout=self.CONNECT_TIMEOUT_S)!r}")
+            else:
+                print(f"[FAIL] {pv_map[key]:20} -- no connection")
 
     def read(self) -> dict:
         raw: dict = {}
@@ -133,7 +158,13 @@ class EpicsSource(DataSource):
         if vents:
             payload["vent"] = pct_to_range(sum(vents)/len(vents)/100.0, 0.0, 500.0)
 
+        # TCS reports altitude (0 = horizon, +90 = zenith); the sim frame is 0 = zenith,
+        # -90 = horizon. Same mapping as UObservatoryCoordinator::MapAltToElevTarget.
+        # Deliberately WITHOUT that function's ElevZeroOffset term: that offset is the
+        # operator's manual pointing adjustment, not a frame calibration, so it must not be
+        # baked into measured telemetry.
         if "elev" in payload:
             payload["elev"] = raw["elev"] - 90.0
-        
+
+
         return payload

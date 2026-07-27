@@ -5,6 +5,10 @@ Usage:
     python server.py --source epics            # uses DEFAULT_PV_MAP from pv_map.py
     python server.py --source mock --host 0.0.0.0 --port 9100 --rate 20
 
+CA search mode for --source epics (mutually exclusive, default is plain UDP broadcast):
+    --ca_addr "<ip>"                                       # UDP broadcast to a known host
+    --name_servers "10.26.70.200:5064 10.26.70.200:5065"   # TCP name servers (tunnel/gateway)
+
 Wire format: one JSON object per line, terminated by '\n'. The Unreal ULiveDataFeed
 connects as a client, drains the socket each tick, and applies each complete line.
 
@@ -22,6 +26,7 @@ import logging
 import socket
 import time
 import os
+import select
 
 from data_source import DataSource, MockSource, EpicsSource, PAYLOAD_KEYS
 
@@ -42,6 +47,7 @@ def serve_client(conn: socket.socket, source: DataSource, rate: float) -> None:
     period = 1.0 / rate if rate > 0 else 0.0
     last_value = {}
     last_update = {}
+    dropped = 0
     while True:
         mono = time.monotonic()
         try:
@@ -60,9 +66,14 @@ def serve_client(conn: socket.socket, source: DataSource, rate: float) -> None:
         oldest = min(last_update.get(k,mono) for k in last_value)
         payload["age"] = round(mono - oldest, 3)
         payload["stale"] = payload["age"] > STALE_AFTER_S
-        line = json.dumps(payload) + "\n"
-        conn.sendall(line.encode("utf-8"))
-        if period:
+        line = (json.dumps(payload) + "\n").encode("utf-8")
+        # Latest-value-wins; drop sample if client isn't draining fast enough.
+        writable, _, _ = select.select([], [conn], [], 0)
+        if writable:
+            conn.sendall(line)
+        else:
+            dropped += 1
+        if period > 0:
             time.sleep(period)
 
 
@@ -73,11 +84,29 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=9100)
     parser.add_argument("--rate", type=float, default=20.0, help="samples per second")
     parser.add_argument("--ca_addr", default=None, help="EPICS_CA_ADDR for epics source")
+    parser.add_argument("--name_servers", default=None,
+                        help="EPICS_CA_NAME_SERVERS for epics source, e.g. "
+                             "'10.26.70.200:5064 10.26.70.200:5065' (tunnel/gateway mode)")
     args = parser.parse_args()
 
+    # --ca_addr is UDP broadcast search; --name_servers is TCP name resolution (tunnel).
+    # They are mutually exclusive: --ca_addr re-enables the broadcast list that name-server
+    # mode has to suppress, so a silent winner would look like "PVs just don't resolve".
+    if args.ca_addr and args.name_servers:
+        parser.error("--ca_addr and --name_servers select mutually exclusive CA search "
+                     "modes; pass only one")
+
+    if args.rate <= 0:
+        parser.error("--rate must be positive and non-zero")
+
+    # Must be set before libca initializes -- see the lazy `import epics` in EpicsSource.
     if args.ca_addr:
         os.environ["EPICS_CA_ADDR_LIST"] = args.ca_addr
         os.environ["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
+    if args.name_servers:
+        os.environ["EPICS_CA_NAME_SERVERS"] = args.name_servers
+        os.environ["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
+        os.environ["EPICS_CA_ADDR_LIST"] = ""
 
     source = build_source(args)
 

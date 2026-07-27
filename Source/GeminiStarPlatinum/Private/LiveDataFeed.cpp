@@ -182,6 +182,13 @@ void ULiveDataFeed::PollSocket()
 				// Buffer is not null-terminated; decode exactly BytesRead bytes as UTF-8.
 				FUTF8ToTCHAR Converted(reinterpret_cast<const ANSICHAR*>(Buffer), BytesRead);
 				RxBuffer.AppendChars(Converted.Get(), Converted.Length());
+
+				if (RxBuffer.GetAllocatedSize() > 64000) // If buffer size > 64KB, assume something went wrong and disconnect
+				{
+					HandleDisconnect();
+					return;
+				}
+
 				continue;
 			}
 
@@ -213,12 +220,19 @@ void ULiveDataFeed::PollSocket()
 		return;
 	}
 
-	// Split out complete '\n'-terminated lines; keep any trailing partial in RxBuffer.
-	int32 NewlineIndex;
-	while (RxBuffer.FindChar('\n', NewlineIndex))
+	// Split out only the newest complete line, discard the rest
+	// Assumes all lines coming in are complete payloads
+	int32 LastNewline;
+	if (RxBuffer.FindLastChar('\n', LastNewline))
 	{
-		FString Line = RxBuffer.Left(NewlineIndex);
-		RxBuffer.RightChopInline(NewlineIndex + 1);
+		FString Complete = RxBuffer.Left(LastNewline);
+		RxBuffer.RightChopInline(LastNewline + 1);
+
+		int32 PrevNewline;
+		FString Line = Complete.FindLastChar('\n', PrevNewline)
+			? Complete.RightChop(PrevNewline + 1)
+			: MoveTemp(Complete);
+
 		Line.TrimStartAndEndInline();
 		if (!Line.IsEmpty())
 		{
@@ -229,7 +243,7 @@ void ULiveDataFeed::PollSocket()
 
 void ULiveDataFeed::HandleDisconnect()
 {
-	UE_LOG(LogLiveFeed, Log, TEXT("LiveFeed: connection lost, will retry"));
+	UE_LOG(LogLiveFeed, Log, TEXT("LiveFeed: connection lost; will retry"));
 
 	if (Socket)
 	{
@@ -249,7 +263,15 @@ void ULiveDataFeed::HandleDisconnect()
 	bBridgeReportedStale = false;
 	SetDataQuality(false, 0.f);
 
-	SetStatus(ReconnectAttempts >= MaxReconnectAttempts ? EFeedStatus::Failed : EFeedStatus::Reconnecting);
+	if (ReconnectAttempts >= MaxReconnectAttempts)
+	{
+		SetStatus(EFeedStatus::Failed);
+		bConnected = false;
+	}
+	else
+	{
+		SetStatus(EFeedStatus::Reconnecting);
+	}
 }
 
 void ULiveDataFeed::ApplyLine(const FString& Line)

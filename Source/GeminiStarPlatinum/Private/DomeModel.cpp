@@ -125,17 +125,19 @@ void UDomeModel::SetOpen(bool bNewOpen)
 	if (bOpen == bNewOpen) return; // No change, do nothing
 	bOpen = bNewOpen;
     // Update targets based on whether the dome is open or closed
+	// Top shutter and bottom shutter use inverted members for open/closed; this is purposeful
+	// When open, top shutter wants to go as up as possible, bottom shutter as down as possible. Vice versa for closed.
     if (bOpen)
     {
-        SetTopShutterTarget(83.f, false); // Yea the targets are calculated from Logan's numbers, but I don't remember how I got them or where the orignal numbers are
-        SetBotShutterTarget(-13.f, false);
-        SetVentTarget(500.f, false);
+        SetTopShutterTarget(TopShutterSwingMax, false); // Motion limits are from Logan Sato was able to find
+        SetBotShutterTarget(BotShutterSwingMin, false);
+        SetVentTarget(VentSlideMax, false);
     }
     else
     {
-        SetTopShutterTarget(-7.f, false);
-        SetBotShutterTarget(-3.5f, false);
-        SetVentTarget(0.f, false);
+        SetTopShutterTarget(TopShutterSwingMin, false);
+        SetBotShutterTarget(BotShutterSwingMax, false);
+        SetVentTarget(VentSlideMin, false);
     }
     OnStateChanged.Broadcast();
 }
