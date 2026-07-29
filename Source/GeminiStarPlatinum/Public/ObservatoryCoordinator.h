@@ -21,9 +21,13 @@ UENUM(BlueprintType) enum class EControlMode : uint8 { Manual, Live };
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnControlModeChanged, EControlMode, Mode);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFeedStatusChanged, EFeedStatus, Status);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDataQualityChanged, bool, IsStale, float, AgeSeconds);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTrackingStatusChanged, bool, IsTracking);
 
 /**
- * Contains general movement rules coordinated between dome, telescope; Manages data access to TCS Epics API
+ * Contains general movement rules coordinated between dome, telescope; Manages data access to TCS Epics API.
+ * Currently contains the logic for slewing and tracking stars. Consider moving this to a different/separate script.
+ * 
+ * Author: Benjamin Bercasio
  */
 
 UCLASS(BlueprintType)
@@ -35,6 +39,7 @@ public:
 	UPROPERTY(BlueprintAssignable) FOnControlModeChanged OnControlModeChanged;
 	UPROPERTY(BlueprintAssignable) FOnFeedStatusChanged OnFeedStatusChanged;
 	UPROPERTY(BlueprintAssignable) FOnDataQualityChanged OnDataQualityChanged;
+	UPROPERTY(BlueprintAssignable) FOnTrackingStatusChanged OnTrackingStatusChanged;
 	UPROPERTY(BlueprintReadOnly) EFeedStatus FeedStatus = EFeedStatus::Disconnected;
 	UPROPERTY(BlueprintReadOnly) bool bDataStaleness = false;
 	UPROPERTY(BlueprintReadOnly) float DataAgeSeconds = 0.f;
@@ -66,9 +71,28 @@ public:
 	/// <param name="NewMode">New mode to set observatory to (EControlMode).</param>
 	UFUNCTION(BlueprintCallable) void SetControlMode(EControlMode NewMode);
 
-	// Star tracking public functions
+	// Star tracking public functions. Default catalogue has 10K stars. 
+	// Can change to full catalogue if need demands (refer to Celestial Vault plug-in documentation)
+
+	/// <summary>
+	/// One-time slew (alt/az change) to a star stored in Celestial Vault actor's catalogue.
+	/// Toggles tracking off if star name is valid.
+	/// Uses manual offset from UI immediately prior to pressing Point (slew) button. 
+	/// </summary>
+	/// <param name="Name">Name of a star inside Celestial Vault's catalogue (FString&)</param>
 	UFUNCTION(BlueprintCallable) void SlewToStar(const FString& Name);
+	/// <summary>
+	/// Constant slew (alt/az change) to a star stored in Celestial Vault actor's catalogue.
+	/// Resolves new rotation every 0.5 seconds using game timer manager.
+	/// Early exits if the input star name is the same as the one currently being tracked.
+	/// </summary>
+	/// <param name="Name">Name of a star inside Celsetial Vault's catalogue (FString&)</param>
 	UFUNCTION(BlueprintCallable) void TrackStar(const FString& Name);
+	/// <summary>
+	/// Turns off tracking (clearing timer, cached star, broadcasts) or turns on tracking (sets timer)
+	/// Early exits if input tracking state is the same.
+	/// </summary>
+	/// <param name="NewState">Tracking on(true)/off(false) (bool)</param>
 	UFUNCTION(BlueprintCallable) void ToggleTracking(const bool NewState);
 
 
@@ -97,7 +121,15 @@ private:
 	/// <param name="NewAge">New age in seconds (float)</param>
 	void HandleDataQualityChanged(bool NewStale, float NewAge);
 
+	/// <summary>
+	/// Matches input name to StarInfo obj in Celestial Vault catalogue.
+	/// Returns corresponding StarInfo if name is valid, otherwise false
+	/// </summary>
+	/// <param name="Name">Name of a star inside Celestial Vault catalogue (FString&)</param>
+	/// <param name="Out">Reference to StarInfo object, modify on valid name</param>
+	/// <returns>Returns true if name is valid, false otherwise (bool)</returns>
 	bool FindStarByName(const FString& Name, FStarInfo& Out) const;
+
 	/// <summary>
 	/// Maps an altitude above the horizon to the telescope model's ElevTarget frame
 	/// (0 = zenith, -90 = horizon), i.e. Alt - 90 + ElevZeroOffset. Unclamped;
@@ -106,5 +138,9 @@ private:
 	/// <param name="AltTarget">Altitude above the horizon in degrees, [0, 90] when reachable.</param>
 	/// <returns>Elevation target in degrees in the model's [-90, 0] frame.</returns>
 	float MapAltToElevTarget(const float AltTarget);
+
+	/// <summary>
+	/// Calculates proper slew (alt/az/dome) to star. Timer function.
+	/// </summary>
 	void SolveTrackingMovement();
 };

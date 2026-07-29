@@ -29,11 +29,11 @@ void UTelescopeModel::Initialize(FSubsystemCollectionBase& Collection)
 /// <returns>Equivalent angle within [-180, 360] deg</returns>
 float UTelescopeModel::UnwrapGeminiAz(float NewRotation)
 {
-	if (NewRotation >= -180.f && NewRotation <= 360.f)
+	if (NewRotation >= -180.f && NewRotation <= 360.f) // Within typical range
 	{
 		return NewRotation;
 	}
-	else if (NewRotation <= -180.f)
+	else if (NewRotation <= -180.f) 
 	{
 		return FMath::Fmod(360.f + FMath::Fmod(NewRotation + 180.f, 360.f), 360.f) - 180.f;
 	}

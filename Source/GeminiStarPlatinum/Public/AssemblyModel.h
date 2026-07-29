@@ -8,6 +8,8 @@
 
 /**
  * The standard structure of a data "model" (MVC pattern) for reading by MovingXXXX actors, storing by UI controller/EPICS data feed
+ * 
+ * Author: Benjamin Bercasio
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStateChanged);
 
@@ -19,7 +21,8 @@ public:
 	UPROPERTY(BlueprintAssignable) FOnStateChanged OnStateChanged;
 protected:
 	/// <summary>
-	/// Returns and broadcasts a value clamped to given range
+	/// Returns and broadcasts a value clamped to given range.
+	/// CURRENTLY UNUSED/UNIMPLEMENTED.
 	/// </summary>
 	/// <param name="Value">A float</param>
 	/// <param name="Field">A pointer to a variable</param>

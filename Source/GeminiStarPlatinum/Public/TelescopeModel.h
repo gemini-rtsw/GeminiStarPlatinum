@@ -8,7 +8,11 @@
 #include "TelescopeModel.generated.h"
 
 /**
+ * Stores all data related to the motions and operation of the telescope model.
+ * Broadcasts to listeners when setter is set to broadcast (default with SetTargets).
+ * Model should always be passive; it never DIRECTLY changes something in another script/actor.
  * 
+ * Author: Benjamin Bercasio
  */
 UCLASS(BlueprintType)
 class GEMINISTARPLATINUM_API UTelescopeModel : public UAssemblyModel
@@ -48,6 +52,15 @@ public:
 	UFUNCTION(BlueprintCallable) void SetTargets(float Azim, float Elev, float Cass);
 	UFUNCTION(BlueprintCallable) void ToggleLaser(bool bLaserState);
 private:
+
+	/// <summary>
+	/// Maps an arbitrary angle into the azimuth cable-wrap range [-180, 360] deg.
+	/// In-range values (limits inclusive) pass through untouched — the extended span exceeds 360deg,
+	/// so out-of-range inputs are inherently ambiguous (e.g. 370 could mean 10 or -350) and are only
+	/// canonicalized: values <= -180 map into (-180, 180], values >= 360 map into [0, 360).
+	/// </summary>
+	/// <param name="NewRotation">Angle in degrees, any value</param>
+	/// <returns>Equivalent angle within [-180, 360] deg</returns>
 	float UnwrapGeminiAz(float NewRotation);
 
 };

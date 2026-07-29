@@ -71,6 +71,7 @@ float UObservatoryCoordinator::MapAltToElevTarget(float AltTarget)
 
 void UObservatoryCoordinator::SlewToStar(const FString& Name)
 {
+	// Check if there is a Celestial Vault, Telescope actor in-scene
 	if (!CelestialVault.IsValid())
 		CelestialVault = 
 			Cast<ACelestialVaultDaySequenceActor>(
@@ -91,7 +92,8 @@ void UObservatoryCoordinator::SlewToStar(const FString& Name)
 	CelestialVault->StarsComponent->GetInstanceTransform(StarInfo.ISMInstanceIndex, ISMInstanceTransform, true);
 
 	FVector Dir = (ISMInstanceTransform.GetLocation() - Telescope->GetActorTransform().GetLocation()).GetSafeNormal();
-	const FVector DirInBase = Telescope->GetActorTransform().InverseTransformVectorNoScale(Dir);
+	const FVector DirInBase = Telescope->GetActorTransform().InverseTransformVectorNoScale(Dir); // Transform dir vector from telescope base 
+																								 // to star in telescope actor space
 
 	float AzimDeg = FMath::RadiansToDegrees(FMath::Atan2(DirInBase.Y, DirInBase.X));
 	float ElevDeg = FMath::RadiansToDegrees(FMath::Atan2(DirInBase.Z,
@@ -115,6 +117,7 @@ void UObservatoryCoordinator::SlewToStar(const FString& Name)
 
 void UObservatoryCoordinator::TrackStar(const FString& Name)
 {
+	// Check if there is a Celestial Vault, Telescope actor in-scene
 	if (!CelestialVault.IsValid())
 		CelestialVault =
 		Cast<ACelestialVaultDaySequenceActor>(
@@ -134,6 +137,8 @@ void UObservatoryCoordinator::TrackStar(const FString& Name)
 
 	if (bTracking)
 		GetGameInstance()->GetTimerManager().ClearTimer(TrackingTimer);
+
+	OnTrackingStatusChanged.Broadcast(true);
 
 	bTracking = true;
 	GetGameInstance()->GetTimerManager().SetTimer(TrackingTimer, this, &UObservatoryCoordinator::SolveTrackingMovement, 0.5f, true);
@@ -158,7 +163,8 @@ void UObservatoryCoordinator::SolveTrackingMovement()
 	CelestialVault->StarsComponent->GetInstanceTransform(TrackedStar.ISMInstanceIndex, ISMInstanceTransform, true);
 
 	FVector Dir = (ISMInstanceTransform.GetLocation() - Telescope->GetActorTransform().GetLocation()).GetSafeNormal();
-	const FVector DirInBase = Telescope->GetActorTransform().InverseTransformVectorNoScale(Dir);
+	const FVector DirInBase = Telescope->GetActorTransform().InverseTransformVectorNoScale(Dir); // Transform dir vector from telescope base 
+																								 // to star in telescope actor space
 
 	float AzimDeg = FMath::RadiansToDegrees(FMath::Atan2(DirInBase.Y, DirInBase.X));
 	float ElevDeg = FMath::RadiansToDegrees(FMath::Atan2(DirInBase.Z,
@@ -191,8 +197,10 @@ void UObservatoryCoordinator::ToggleTracking(const bool NewState)
 	bTracking = NewState;
 	if (!bTracking)
 	{
+		// Clear all current tracking info for future tracking calls
 		GetGameInstance()->GetTimerManager().ClearTimer(TrackingTimer);
 		TrackedStar = FStarInfo();
+		OnTrackingStatusChanged.Broadcast(false);
 	}
 	else
 	{
