@@ -19,14 +19,6 @@ void UTelescopeModel::Initialize(FSubsystemCollectionBase& Collection)
 	}
 }
 
-/// <summary>
-/// Maps an arbitrary angle into the azimuth cable-wrap range [-180, 360] deg.
-/// In-range values (limits inclusive) pass through untouched — the extended span exceeds 360deg,
-/// so out-of-range inputs are inherently ambiguous (e.g. 370 could mean 10 or -350) and are only
-/// canonicalized: values <= -180 map into (-180, 180], values >= 360 map into [0, 360).
-/// </summary>
-/// <param name="NewRotation">Angle in degrees, any value</param>
-/// <returns>Equivalent angle within [-180, 360] deg</returns>
 float UTelescopeModel::UnwrapGeminiAz(float NewRotation)
 {
 	if (NewRotation >= -180.f && NewRotation <= 360.f) // Within typical range
